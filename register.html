@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro – Vaper Monkey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">🐒</span>
+      <span class="logo-text">
+        <span class="logo-top">Vaper</span>
+        <span class="logo-bottom">Monkey</span>
+      </span>
+    </a>
+  </div>
+</header>
+
+<section class="section section-account">
+  <div class="container account-inner">
+
+    <div class="account-card reveal">
+      <h2 class="section-title">Crear cuenta</h2>
+
+      <form id="registerForm" class="form">
+
+        <div class="form-group">
+          <label>Nombre</label>
+          <input id="regName" required>
+        </div>
+
+        <div class="form-group">
+          <label>Instagram</label>
+          <input id="regIg" required placeholder="@usuario">
+        </div>
+
+        <div class="form-group">
+          <label>Correo</label>
+          <input type="email" id="regEmail" required>
+        </div>
+
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="regPassword" required>
+        </div>
+
+        <button class="btn-primary full">Registrarme</button>
+
+        <p class="form-error" id="registerError"></p>
+
+        <p class="form-helper">
+          ¿Ya tienes cuenta?
+          <a href="login.html" class="link-btn">Inicia sesión</a>
+        </p>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

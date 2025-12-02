@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vaper Monkey – Tienda Neon</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="background-noise"></div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-mark"><img src="../IMG/content.png" alt=""></span>
+        <span class="logo-text">
+          <span class="logo-top">Vaper</span>
+          <span class="logo-bottom">Monkey</span>
+        </span>
+      </a>
+
+      <nav class="nav">
+        <ul class="nav-list">
+          <li><a href="index.html#inicio" class="nav-link">Inicio</a></li>
+          <li><a href="index.html#vapers" class="nav-link">Vapers</a></li>
+          <li><a href="index.html#info" class="nav-link">Info</a></li>
+
+          <li><a href="login.html" class="nav-link">Entrar</a></li>
+          <li><a href="register.html" class="nav-link">Registro</a></li>
+
+          <li><a href="admin.html" class="nav-link nav-admin-link hidden">Admin</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <div class="user-status">
+          <span id="userNameLabel"></span>
+        </div>
+        <button class="btn-small hidden" id="btnLogout">Salir</button>
+
+        <button class="cart-btn">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span class="cart-label">Reservas</span>
+          <span class="cart-count">0</span>
+        </button>
+
+        <button class="menu-toggle" aria-label="Abrir menú">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="inicio">
+    <div class="container hero-inner">
+      <div class="hero-content reveal">
+        <p class="hero-tagline">Urbano • Neon • Alta Nicotina</p>
+        <h1 class="hero-title">
+          Reserva tus <span>vapers neon</span> antes de que vuelen
+        </h1>
+        <p class="hero-subtitle">
+          Vaper Monkey es tu punto de referencia en BOW, 40k y más.
+        </p>
+        <div class="hero-actions">
+          <a href="#vapers" class="btn-primary">Ver vapers</a>
+          <a href="register.html" class="btn-ghost">Crear cuenta</a>
+        </div>
+      </div>
+
+      <div class="hero-visual reveal">
+        <div class="device-card">
+          <div class="device-glow"></div>
+          <div class="device-body">
+            <div class="device-header">
+              <span class="device-badge">nuevo</span>
+              <span class="device-name">Neon Monkey Pod</span>
+            </div>
+            <div class="device-main">
+              <div class="device-shape">
+                <div class="device-vapor device-vapor-1"></div>
+                <div class="device-vapor device-vapor-2"></div>
+                <div class="device-vapor device-vapor-3"></div>
+              </div>
+            </div>
+            <div class="device-footer">
+              <span class="device-flavor">BOW • 40k • Ediciones limitadas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VAPERS -->
+  <section class="section" id="vapers">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2 class="section-title">Vapers disponibles</h2>
+        <p class="section-subtitle">Reserva modelos por sabor y categoría.</p>
+      </div>
+
+      <div id="categoryFilters" class="products-toolbar"></div>
+      <div id="productGrid" class="product-grid"></div>
+    </div>
+  </section>
+
+  <!-- INFO -->
+  <section class="section" id="info">
+    <div class="container about-inner reveal">
+      <div>
+        <h2 class="section-title">¿Cómo funciona?</h2>
+        <p>Elige el modelo, el sabor y reserva vía WhatsApp.</p>
+        <p>Para <strong>cajas completas</strong>, escríbenos por Instagram.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL -->
+  <div class="modal-overlay hidden" id="vaperModal">
+    <div class="modal">
+      <button id="modalCloseBtn" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+
+      <div class="modal-body">
+        <div class="modal-image-wrapper">
+          <img id="modalVaperImage" src="">
+        </div>
+
+        <div class="modal-content">
+          <h3 id="modalVaperName"></h3>
+          <p id="modalVaperCategory" class="modal-category"></p>
+
+          <div class="form-group">
+            <label>Elige sabor</label>
+            <select id="modalFlavorSelect"></select>
+          </div>
+
+          <button id="btnReservar" class="btn-primary full">Reservar</button>
+
+          <p class="modal-note">Para cajas completas, escribe por Instagram.</p>
+
+          <p id="modalError" class="form-error"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-col">
+        <div class="logo footer-logo">
+          <span class="logo-mark"><img src="../IMG/content.png" alt=""></span>
+          <span class="logo-text">
+            <span class="logo-top">Vaper</span>
+            <span class="logo-bottom">Monkey</span>
+          </span>
+        </div>
+        <p class="footer-text">
+          Tienda neon para reservar vapers urbanos.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="footer-title">Secciones</h4>
+        <ul class="footer-links">
+          <li><a href="#inicio">Inicio</a></li>
+          <li><a href="#vapers">Vapers</a></li>
+          <li><a href="#info">Info</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="footer-title">Contacto</h4>
+        <ul class="footer-links">
+          <li><a href="https://wa.me/34744489428" target="_blank">WhatsApp</a></li>
+          <li><a href="https://instagram.com" target="_blank">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      © <span id="year"></span> Vaper Monkey
+    </div>
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
