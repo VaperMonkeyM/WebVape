@@ -10,9 +10,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
 
-  const { modelo, sabor, nombre, instagram, hora } = req.body;
+  const { modelo, sabor, nombre, instagram, hora, email } = req.body;
 
-  if (!modelo || !sabor || !nombre || !instagram) {
+  if (!modelo || !sabor || !nombre || !instagram || !email) {
     return res.status(400).json({ ok: false, error: "Datos incompletos" });
   }
 
@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       }
     });
 
+    // Email al ADMIN
     await transporter.sendMail({
       from: `"Vaper Monkey Bot" <${process.env.GMAIL_USER}>`,
       to: process.env.ADMIN_EMAIL,
@@ -37,8 +38,31 @@ Nueva reserva:
 
 👤 Cliente: ${nombre}
 📸 Instagram: ${instagram}
+📧 Email: ${email}
 
 🕐 Hora del pedido: ${hora}
+      `
+    });
+
+    // Email al CLIENTE
+    await transporter.sendMail({
+      from: `"Vaper Monkey" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: "✅ Reserva confirmada - Vaper Monkey",
+      text: `
+Hola ${nombre},
+
+¡Tu reserva ha sido confirmada! 🎉
+
+📦 Modelo: ${modelo}
+🍭 Sabor: ${sabor}
+
+🕐 Hora del pedido: ${hora}
+
+Nos pondremos en contacto contigo pronto por Instagram: @vaper__monkey
+
+Gracias por tu compra,
+Vaper Monkey 🐒🌴💨
       `
     });
 

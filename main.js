@@ -755,6 +755,7 @@ function setupModalReserva() {
         sabor,
         nombre: currentUserData?.nombre || "",
         instagram: currentUserData?.instagram || "",
+        email: currentUser?.email || "",
         hora: new Date().toLocaleString("es-ES", {
           year: "numeric",
           month: "2-digit",
