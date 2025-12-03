@@ -514,10 +514,18 @@ function renderAdminProductList() {
     box.appendChild(item);
   });
 
-  // Cerrar menús al hacer click fuera
-  document.addEventListener("click", () => {
-    $$(".admin-menu").forEach((m) => m.classList.add("hidden"));
+ // Cerrar menús solo si haces click FUERA del menú y del botón ⋮
+  document.addEventListener("click", (e) => {
+    $$(".admin-menu").forEach((menu) => {
+      if (
+        !menu.contains(e.target) &&             // click fuera del menú
+        !menu.previousElementSibling.contains(e.target) // click fuera del botón ⋮
+      ) {
+        menu.classList.add("hidden");
+      }
+    });
   });
+
 }
 
 function setupVapers() {
