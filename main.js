@@ -1,7 +1,7 @@
 // main.js (type="module")
 
 // ======================================================
-// 1. IMPORTAR FIREBASE Y CONFIG PERSONALIZADA
+// 1. IMPORTAR FIREBASE Y CONFIG
 // ======================================================
 
 import { firebaseConfig } from "./firebase/firebaseConfig.js";
@@ -20,10 +20,10 @@ import {
   getFirestore,
   collection,
   addDoc,
-  getDocs,
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   getDoc,
   query,
@@ -51,8 +51,6 @@ let currentCategories = [];
 
 let currentFilter = "all";
 let reservasCount = 0;
-
-const WHATSAPP_NUMBER = "34";
 
 // Helpers
 const $ = (s) => document.querySelector(s);
@@ -102,20 +100,26 @@ function updateAuthUI() {
     return;
   }
 
-  if (label) label.textContent = `Hola, ${currentUserData.nombre}`;
+  if (label && currentUserData) {
+    label.textContent = `Hola, ${currentUserData.nombre}`;
+  }
   logout?.classList.remove("hidden");
 
-  if (currentRole === "admin") adminLink?.classList.remove("hidden");
+  if (currentRole === "admin") {
+    adminLink?.classList.remove("hidden");
+  } else {
+    adminLink?.classList.add("hidden");
+  }
 }
 
 function setupAuthForms() {
   const loginForm = $("#loginForm");
   const registerForm = $("#registerForm");
 
-  // Login form
+  // Login
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    $("#loginError").textContent = "";
+    $("#loginError") && ($("#loginError").textContent = "");
 
     const email = $("#loginEmail").value.trim();
     const pass = $("#loginPassword").value;
@@ -125,14 +129,14 @@ function setupAuthForms() {
       showToast("Sesión iniciada");
       window.location.href = "index.html";
     } catch {
-      $("#loginError").textContent = "Credenciales incorrectas.";
+      $("#loginError") && ($("#loginError").textContent = "Credenciales incorrectas.");
     }
   });
 
   // Registro
   registerForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    $("#registerError").textContent = "";
+    $("#registerError") && ($("#registerError").textContent = "");
 
     const nombre = $("#regName").value.trim();
     const instagram = $("#regIg").value.trim();
@@ -151,8 +155,8 @@ function setupAuthForms() {
 
       showToast("Cuenta creada");
       window.location.href = "login.html";
-    } catch (err) {
-      $("#registerError").textContent = "Error al registrar.";
+    } catch {
+      $("#registerError") && ($("#registerError").textContent = "Error al registrar.");
     }
   });
 
@@ -169,7 +173,6 @@ function setupAuthForms() {
     currentRole = "user";
 
     if (user) await loadUserData(user.uid);
-
     updateAuthUI();
   });
 }
@@ -184,21 +187,20 @@ function renderCategoryFilters() {
 
   box.innerHTML = "";
 
-  // All
+  // Botón "Todos"
   const btnAll = document.createElement("button");
   btnAll.className = "chip";
   btnAll.dataset.filter = "all";
   btnAll.textContent = "Todos";
   if (currentFilter === "all") btnAll.classList.add("chip-active");
-  box.appendChild(btnAll);
-
   btnAll.onclick = () => {
     currentFilter = "all";
     renderProducts();
     renderCategoryFilters();
   };
+  box.appendChild(btnAll);
 
-  // Each category
+  // Cada categoría
   currentCategories.forEach((c) => {
     const b = document.createElement("button");
     b.className = "chip";
@@ -225,11 +227,51 @@ function renderAdminCategoryList() {
   select.innerHTML = "";
 
   currentCategories.forEach((c) => {
-    let li = document.createElement("li");
-    li.textContent = c.nombre;
+    const li = document.createElement("li");
+    li.className = "admin-cat-item";
+    li.innerHTML = `
+      <span>${c.nombre}</span>
+      <div class="admin-actions">
+        <button class="menu-btn" type="button">⋮</button>
+        <div class="admin-menu hidden">
+          <div class="admin-menu-item edit-cat">✏️ Editar</div>
+          <div class="admin-menu-item delete-cat">🗑 Eliminar</div>
+        </div>
+      </div>
+    `;
+
+    const menuBtn = li.querySelector(".menu-btn");
+    const menu = li.querySelector(".admin-menu");
+
+    menuBtn.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+
+    // Editar categoría (solo nombre)
+    li.querySelector(".edit-cat").addEventListener("click", async () => {
+      const nuevoNombre = prompt("Nuevo nombre de la categoría:", c.nombre);
+      if (!nuevoNombre) return;
+      await updateDoc(doc(db, "categorias", c.id), {
+        nombre: nuevoNombre.trim(),
+        slug: slugify(nuevoNombre),
+      });
+      showToast("Categoría actualizada");
+    });
+
+    // Eliminar categoría
+    li.querySelector(".delete-cat").addEventListener("click", async () => {
+      const ok = confirm(
+        "¿Eliminar esta categoría? Los vapers seguirán existiendo, pero sin categoría."
+      );
+      if (!ok) return;
+      await deleteDoc(doc(db, "categorias", c.id));
+      showToast("Categoría eliminada");
+    });
+
     list.appendChild(li);
 
-    let opt = document.createElement("option");
+    const opt = document.createElement("option");
     opt.value = c.id;
     opt.textContent = c.nombre;
     select.appendChild(opt);
@@ -237,15 +279,15 @@ function renderAdminCategoryList() {
 }
 
 function setupCategories() {
-  // Listener
-  const q = query(collection(db, "categorias"), orderBy("nombre"));
-  onSnapshot(q, (snap) => {
+  // Escuchar categorías
+  const qCat = query(collection(db, "categorias"), orderBy("nombre"));
+  onSnapshot(qCat, (snap) => {
     currentCategories = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderCategoryFilters();
     renderAdminCategoryList();
   });
 
-  // Form
+  // Formulario añadir categoría
   const form = $("#categoryForm");
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -272,9 +314,12 @@ function renderProducts() {
 
   grid.innerHTML = "";
 
-  let list = currentProducts;
-  if (currentFilter !== "all")
+  // Solo vapers en stock
+  let list = currentProducts.filter((p) => p.enStock);
+
+  if (currentFilter !== "all") {
     list = list.filter((p) => p.categoriaId === currentFilter);
+  }
 
   list.forEach((p) => {
     const card = document.createElement("article");
@@ -285,8 +330,7 @@ function renderProducts() {
 
     card.innerHTML = `
       <div class="product-image">
-        <img src="${p.imagenUrl}">
-        ${p.enStock ? "" : `<span class="product-badge">Sin stock</span>`}
+        <img src="${p.imagenUrl}" alt="${p.nombre}">
       </div>
 
       <div class="product-body">
@@ -294,11 +338,9 @@ function renderProducts() {
         <p class="product-category">${catName}</p>
 
         <div class="product-info">
-          <span class="product-status ${p.enStock ? "in-stock" : "out-stock"}">
-            ${p.enStock ? "En stock" : "Sin stock"}
-          </span>
+          <span class="product-status in-stock">En stock</span>
 
-          <button class="btn-tertiary btn-reservar"${p.enStock ? "" : "disabled"}>
+          <button class="btn-tertiary btn-reservar">
             Reservar
           </button>
         </div>
@@ -306,9 +348,91 @@ function renderProducts() {
     `;
 
     card.querySelector(".btn-reservar").onclick = () => openVaperModal(p);
-
     grid.appendChild(card);
   });
+}
+
+// ---------- ADMIN LISTA VAPERS CON MENÚ ⋮ ----------
+
+function openEditVaperModal(p) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+
+  overlay.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" id="editCloseBtn">×</button>
+      <h3>Editar vaper</h3>
+
+      <div class="form-group">
+        <label>Nombre</label>
+        <input id="editName" value="${p.nombre}">
+      </div>
+
+      <div class="form-group">
+        <label>Sabores (separados por coma)</label>
+        <input id="editFlavors" value="${p.sabores.join(", ")}">
+      </div>
+
+      <div class="form-group">
+        <label>Imagen URL</label>
+        <input id="editImage" value="${p.imagenUrl}">
+      </div>
+
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="editCategory">
+          ${currentCategories
+            .map(
+              (c) => `
+            <option value="${c.id}" ${c.id === p.categoriaId ? "selected" : ""}>
+              ${c.nombre}
+            </option>`
+            )
+            .join("")}
+        </select>
+      </div>
+
+      <div class="hero-actions" style="margin-top:18px;">
+        <button id="editSave" class="btn-primary">Guardar</button>
+        <button id="editCancel" class="btn-tertiary">Cancelar</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector("#editCloseBtn").onclick = close;
+  overlay.querySelector("#editCancel").onclick = close;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+
+  overlay.querySelector("#editSave").onclick = async () => {
+    const nombre = overlay.querySelector("#editName").value.trim();
+    const sabores = overlay
+      .querySelector("#editFlavors")
+      .value.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const imagenUrl = overlay.querySelector("#editImage").value.trim();
+    const categoriaId = overlay.querySelector("#editCategory").value;
+
+    if (!nombre || !imagenUrl || !categoriaId) {
+      alert("Rellena todos los campos.");
+      return;
+    }
+
+    await updateDoc(doc(db, "vapers", p.id), {
+      nombre,
+      sabores,
+      imagenUrl,
+      categoriaId,
+    });
+
+    showToast("Vaper actualizado");
+    close();
+  };
 }
 
 function renderAdminProductList() {
@@ -331,57 +455,70 @@ function renderAdminProductList() {
       </div>
 
       <div class="admin-actions">
-        <span class="stock-toggle ${p.enStock ? "ok" : "off"}">
+        <span class="stock-toggle admin-badge-stock ${
+          p.enStock ? "ok" : "off"
+        }">
           ${p.enStock ? "En stock" : "Sin stock"}
         </span>
 
-        <button class="menu-btn">⋮</button>
+        <button class="menu-btn" type="button">⋮</button>
 
         <div class="admin-menu hidden">
+          <div class="admin-menu-item toggle-stock">
+            ${p.enStock ? "❌ Quitar stock" : "✅ Poner stock"}
+          </div>
           <div class="admin-menu-item edit-vaper">✏️ Editar</div>
-          <div class="admin-menu-item toggle-stock">${p.enStock ? "❌ Quitar stock" : "✅ Poner stock"}</div>
           <div class="admin-menu-item delete-vaper">🗑 Eliminar</div>
         </div>
       </div>
     `;
 
+    const stockBadge = item.querySelector(".stock-toggle");
     const menuBtn = item.querySelector(".menu-btn");
     const menu = item.querySelector(".admin-menu");
 
-    menuBtn.onclick = () => {
-      menu.classList.toggle("hidden");
-    };
-
-    document.addEventListener("click", (e) => {
-      if (!item.contains(e.target)) menu.classList.add("hidden");
+    // Toggle stock desde el texto
+    stockBadge.addEventListener("pointerdown", async (e) => {
+      e.stopPropagation();
+      const nuevo = !p.enStock;
+      await updateDoc(doc(db, "vapers", p.id), { enStock: nuevo });
+      showToast("Stock actualizado");
     });
 
-    // Cambiar stock
-    item.querySelector(".toggle-stock").onclick = async () => {
-      await updateDoc(doc(db, "vapers", p.id), {
-        enStock: !p.enStock
-      });
-      showToast("Stock actualizado");
-    };
+    // Abrir / cerrar menú ⋮
+    menuBtn.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
 
-    // Eliminar vaper
-    item.querySelector(".delete-vaper").onclick = async () => {
-      if (!confirm("¿Seguro que quieres borrar este vaper?")) return;
+    // Menú: toggle stock
+    item.querySelector(".toggle-stock").addEventListener("click", async () => {
+      const nuevo = !p.enStock;
+      await updateDoc(doc(db, "vapers", p.id), { enStock: nuevo });
+      showToast("Stock actualizado");
+    });
+
+    // Menú: editar vaper
+    item.querySelector(".edit-vaper").addEventListener("click", () => {
+      openEditVaperModal(p);
+    });
+
+    // Menú: eliminar vaper
+    item.querySelector(".delete-vaper").addEventListener("click", async () => {
+      const ok = confirm("¿Eliminar este vaper?");
+      if (!ok) return;
       await deleteDoc(doc(db, "vapers", p.id));
       showToast("Vaper eliminado");
-    };
-
-    // Editar vaper
-    item.querySelector(".edit-vaper").onclick = () => {
-      openEditVaperModal(p);
-    };
+    });
 
     box.appendChild(item);
   });
+
+  // Cerrar menús al hacer click fuera
+  document.addEventListener("click", () => {
+    $$(".admin-menu").forEach((m) => m.classList.add("hidden"));
+  });
 }
-
-
-
 
 function setupVapers() {
   // Listener Firestore
@@ -392,17 +529,20 @@ function setupVapers() {
     renderAdminProductList();
   });
 
-  // ADD VAPER
+  // Añadir vaper
   const form = $("#vaperForm");
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const nombre = $("#vaperName").value.trim();
     const categoriaId = $("#vaperCategory").value;
-    const sabores = $("#vaperFlavors").value.split(",").map(s => s.trim());
+    const sabores = $("#vaperFlavors")
+      .value.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const imagenUrl = $("#vaperImage").value.trim();
 
-    if (!nombre || !categoriaId || !imagenUrl) return;
+    if (!nombre || !categoriaId || !imagenUrl || !sabores.length) return;
 
     await addDoc(collection(db, "vapers"), {
       nombre,
@@ -419,7 +559,7 @@ function setupVapers() {
 }
 
 // ======================================================
-// 7. MODAL + WHATSAPP
+// 7. MODAL + RESERVA (ENVÍO POR EMAIL / API)
 // ======================================================
 
 let modalVaper = null;
@@ -441,6 +581,7 @@ function openVaperModal(vaper) {
     sel.appendChild(op);
   });
 
+  $("#modalError").textContent = "";
   $("#vaperModal").classList.remove("hidden");
 }
 
@@ -457,7 +598,7 @@ function setupModal() {
   });
 
   $("#btnReservar")?.addEventListener("click", () => {
-    if (!currentUser) {
+    if (!currentUser || !currentUserData) {
       $("#modalError").textContent = "Debes iniciar sesión.";
       return;
     }
@@ -468,50 +609,67 @@ function setupModal() {
       return;
     }
 
-    const text = `
-Reserva Vaper:
-Modelo: ${modalVaper.nombre}
-Sabor: ${sabor}
-Nombre: ${currentUserData.nombre}
-Instagram: ${currentUserData.instagram}
-    `.trim();
-
     reservasCount++;
-    $(".cart-count").textContent = reservasCount;
+    const cartCount = $(".cart-count");
+    if (cartCount) cartCount.textContent = reservasCount;
 
-    // ENVIAR RESERVA AUTOMÁTICA POR GMAIL
-fetch("/api/sendEmail", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    modelo: modalVaper.nombre,
-    sabor: sabor,
-    nombre: currentUserData.nombre,
-    instagram: currentUserData.instagram,
-  }),
-})
-  .then((res) => res.json())
-  .then((data) => {
-    if (data.ok) {
-      showToast("Reserva enviada correctamente");
-      closeVaperModal();
-    } else {
-      $("#modalError").textContent =
-        "Error al enviar la reserva. Inténtalo más tarde.";
-    }
-  })
-  .catch(() => {
-    $("#modalError").textContent =
-      "Error al conectar con el servidor.";
-  });
+    fetch("/api/sendEmail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modelo: modalVaper.nombre,
+        sabor,
+        nombre: currentUserData.nombre,
+        instagram: currentUserData.instagram,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) {
+          showToast("Reserva enviada correctamente");
+          closeVaperModal();
+        } else {
+          $("#modalError").textContent =
+            "Error al enviar la reserva. Inténtalo más tarde.";
+        }
+      })
+      .catch(() => {
+        $("#modalError").textContent =
+          "Error al conectar con el servidor.";
+      });
 
-    showToast("Enviando Reserva...");
-    closeVaperModal();
+    showToast("Enviando reserva...");
   });
 }
 
 // ======================================================
-// 8. INICIALIZACIÓN GLOBAL
+// 8. MENÚ MÓVIL
+// ======================================================
+
+function setupMobileMenu() {
+  const menuToggle = document.querySelector(".menu-toggle");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  if (!menuToggle || !mobileMenu) return;
+
+  menuToggle.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    mobileMenu.classList.toggle("hidden");
+  });
+
+  document.addEventListener("pointerdown", (e) => {
+    if (
+      !mobileMenu.classList.contains("hidden") &&
+      !mobileMenu.contains(e.target) &&
+      !menuToggle.contains(e.target)
+    ) {
+      mobileMenu.classList.add("hidden");
+    }
+  });
+}
+
+// ======================================================
+// 9. INIT GLOBAL
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -519,25 +677,10 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCategories();
   setupVapers();
   setupModal();
-});
-// ==================
-//  MOBILE MENU
-// ==================
+  setupMobileMenu();
 
-const menuToggle = document.querySelector(".menu-toggle");
-const mobileMenu = document.getElementById("mobileMenu");
-
-if (menuToggle) {
-  menuToggle.addEventListener("click", () => {
-    mobileMenu.classList.toggle("hidden");
-  });
-}
-
-// Cerrar si pulsa fuera
-document.addEventListener("click", (e) => {
-  if (!mobileMenu.classList.contains("hidden")) {
-    if (!mobileMenu.contains(e.target) && !menuToggle.contains(e.target)) {
-      mobileMenu.classList.add("hidden");
-    }
+  const yearSpan = $("#year");
+  if (yearSpan) {
+    yearSpan.textContent = new Date().getFullYear();
   }
 });

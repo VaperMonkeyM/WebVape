@@ -580,3 +580,39 @@ img {
   color: var(--neon-green);
   box-shadow: 0 0 10px rgba(57,255,20,0.4);
 }
+.menu-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.admin-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-menu {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  background: #16161f;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #333;
+  width: 140px;
+  z-index: 50;
+}
+
+.admin-menu-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.admin-menu-item:hover {
+  background: rgba(0, 217, 255, 0.1);
+}
