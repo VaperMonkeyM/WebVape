@@ -776,9 +776,27 @@ function setupModalReserva() {
       return;
     }
 
+    // Validar que el producto aún esté en stock
+    const vaperActual = currentProducts.find(p => p.id === modalVaper.id);
+    if (!vaperActual || !vaperActual.enStock) {
+      $("#modalError").textContent = "Este producto ya no está disponible.";
+      closeVaperModal();
+      showToast("Producto sin stock");
+      return;
+    }
+
     const sabor = $("#modalFlavorSelect").value;
     if (!sabor) {
       $("#modalError").textContent = "Elige un sabor.";
+      return;
+    }
+
+    // Validar que el sabor seleccionado aún esté en stock
+    const saborObj = vaperActual.sabores?.find(s => s.nombre === sabor);
+    if (!saborObj || saborObj.enStock === false) {
+      $("#modalError").textContent = "Este sabor ya no está disponible.";
+      closeVaperModal();
+      showToast("Sabor sin stock");
       return;
     }
 
