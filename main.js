@@ -631,6 +631,25 @@ function addFlavorEditRow(container, flavor = { nombre: "", imagenUrl: "" }) {
     });
   }
 
+  // Preview selected file in the edit row (optional small preview)
+  const fileInput = row.querySelector('.flavor-file');
+  const preview = document.createElement('img');
+  preview.className = 'flavor-edit-preview';
+  preview.style.maxHeight = '80px';
+  preview.style.marginLeft = '10px';
+  preview.style.objectFit = 'cover';
+  if (row.dataset.currentUrl) {
+    preview.src = row.dataset.currentUrl;
+  }
+  fileInput.parentNode.insertBefore(preview, fileInput.nextSibling);
+
+  fileInput.addEventListener('change', (ev) => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    preview.src = url;
+  });
+
   container.appendChild(row);
 }
 
@@ -758,8 +777,29 @@ function openVaperModal(vaper) {
     const op = document.createElement("option");
     op.value = nombre;
     op.textContent = nombre;
+    // attach image URL to option for preview
+    if (s.imagenUrl) op.dataset.img = s.imagenUrl;
     sel.appendChild(op);
   });
+
+  const flavorImgEl = $("#modalFlavorImage");
+  // helper to update flavor image based on selected option
+  function updateFlavorImage() {
+    const chosen = sel.options[sel.selectedIndex];
+    if (chosen && chosen.dataset.img) {
+      flavorImgEl.src = chosen.dataset.img;
+      flavorImgEl.classList.remove('hidden');
+    } else {
+      flavorImgEl.src = '';
+      flavorImgEl.classList.add('hidden');
+    }
+  }
+
+  // initial set (select first)
+  sel.selectedIndex = 0;
+  updateFlavorImage();
+
+  sel.addEventListener('change', updateFlavorImage);
 
   $("#vaperModal").classList.remove("hidden");
 }
