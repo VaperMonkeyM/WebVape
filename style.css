@@ -280,13 +280,15 @@ a {
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -1px;
   color: var(--text);
-  white-space: normal;
+  white-space: nowrap;
   word-spacing: 0.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hero-title span {
@@ -884,8 +886,9 @@ a {
   }
 
   .hero-title {
-    font-size: 3.8rem;
+    font-size: 3.2rem;
     line-height: 1.2;
+    white-space: nowrap;
   }
 
   .hero-title span {
@@ -1042,8 +1045,11 @@ a {
   }
 
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.6rem;
     color: var(--text);
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .hero-title span {
