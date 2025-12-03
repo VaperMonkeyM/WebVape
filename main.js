@@ -53,8 +53,7 @@ const storage = getStorage(app);
 // ======================================================
 // 3. VARIABLES GLOBALES
 // ======================================================
-
-const ADMIN_UIDs = ["zzmyV3WtENYwJ28OUlEaNjCpMA13"];
+const ADMIN_EMAIL = "cainlopezburgos@gmail.com"; // <-- PON AQUÍ TU CORREO ADMIN REAL
 
 let currentUser = null;
 let currentUserData = null;
@@ -103,32 +102,28 @@ async function uploadFlavorImage(file, vaperId, flavorName) {
 // ======================================================
 
 async function loadUserData(uid) {
-  currentRole = "user";
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
 
-  const snap = await getDoc(doc(db, "users", uid));
-  if (snap.exists()) currentUserData = snap.data();
+  currentRole = "user"; // siempre por defecto
+  currentUserData = snap.exists() ? snap.data() : {};
 
-  if (ADMIN_UIDs.includes(uid)) currentRole = "admin";
+  // admin SOLO por correo
+  if (currentUser?.email === ADMIN_EMAIL) {
+    currentRole = "admin";
+  }
 }
 
 function updateAuthUI() {
-  const label = $("#userNameLabel");
-  const logout = $("#btnLogout");
   const adminLink = $(".nav-admin-link");
 
-  if (!currentUser) {
-    label.textContent = "";
-    logout.classList.add("hidden");
-    adminLink.classList.add("hidden");
-    return;
+  if (currentRole === "admin") {
+    adminLink?.classList.remove("hidden");
+  } else {
+    adminLink?.classList.add("hidden");
   }
-
-  label.textContent = `Hola, ${currentUserData?.nombre || ""}`;
-  logout.classList.remove("hidden");
-
-  if (currentRole === "admin") adminLink.classList.remove("hidden");
-  else adminLink.classList.add("hidden");
 }
+
 
 function setupAuthForms() {
   setPersistence(auth, browserLocalPersistence).catch(() => {});
