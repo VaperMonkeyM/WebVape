@@ -132,15 +132,48 @@ async function loadUserData(user) {
   console.log("[AUTH] User:", email, "Rol:", currentRole);
 }
 
+// ✅ VERIFICAR ACCESO ADMIN
+export async function checkAdminAccess() {
+  return new Promise((resolve) => {
+    onAuthStateChanged(auth, async (user) => {
+      const noAccessDiv = $("#noAccessMessage");
+      const adminPanel = $("#adminPanel");
+
+      if (!user) {
+        // No está logueado
+        if (noAccessDiv) noAccessDiv.classList.remove("hidden");
+        if (adminPanel) adminPanel.classList.add("hidden");
+        resolve(false);
+        return;
+      }
+
+      const email = (user.email || "").toLowerCase();
+      if (email === ADMIN_EMAIL.toLowerCase()) {
+        // Es admin
+        if (noAccessDiv) noAccessDiv.classList.add("hidden");
+        if (adminPanel) adminPanel.classList.remove("hidden");
+        resolve(true);
+      } else {
+        // No es admin
+        if (noAccessDiv) noAccessDiv.classList.remove("hidden");
+        if (adminPanel) adminPanel.classList.add("hidden");
+        resolve(false);
+      }
+    });
+  });
+}
+
 function updateAuthUI() {
   const label = $("#userNameLabel");
   const logout = $("#btnLogout");
   const adminLink = $(".nav-admin-link");
+  const mobileAdminLinks = $$(".mobile-admin-link");
 
   if (!currentUser) {
     if (label) label.textContent = "";
     if (logout) logout.classList.add("hidden");
     if (adminLink) adminLink.classList.add("hidden");
+    mobileAdminLinks.forEach(link => link.classList.add("hidden"));
     return;
   }
 
@@ -157,6 +190,14 @@ function updateAuthUI() {
       adminLink.classList.add("hidden");
     }
   }
+
+  mobileAdminLinks.forEach(link => {
+    if (currentRole === "admin") {
+      link.classList.remove("hidden");
+    } else {
+      link.classList.add("hidden");
+    }
+  });
 }
 
 function setupAuthForms() {
