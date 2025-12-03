@@ -319,14 +319,15 @@ function renderAdminProductList() {
 
   currentProducts.forEach((p) => {
     const catObj = currentCategories.find((c) => c.id === p.categoriaId);
+    const catName = catObj ? catObj.nombre : "";
 
     const item = document.createElement("div");
     item.className = "admin-vaper-item";
 
     item.innerHTML = `
       <div class="admin-vaper-info">
-        <span>${p.nombre}</span>
-        <span class="admin-vaper-meta">${catObj ? catObj.nombre : ""}</span>
+        <strong>${p.nombre}</strong>
+        <span class="admin-vaper-meta">${catName}</span>
       </div>
 
       <div class="admin-actions">
@@ -335,7 +336,9 @@ function renderAdminProductList() {
         </span>
 
         <div class="menu-dots">
-          <button class="menu-dots-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          <button class="menu-dots-btn">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
 
           <div class="menu-dots-menu">
             <button data-action="stock-on">Marcar en stock</button>
@@ -345,32 +348,41 @@ function renderAdminProductList() {
       </div>
     `;
 
+    // --- ABRIR / CERRAR MENÚ ----
     const menuBtn = item.querySelector(".menu-dots-btn");
     const menu = item.querySelector(".menu-dots-menu");
 
     menuBtn.onclick = (e) => {
       e.stopPropagation();
+      // Cerrar otros menús
       $$(".menu-dots-menu").forEach((m) => m.classList.remove("open"));
       menu.classList.toggle("open");
     };
 
-    menu.querySelectorAll("button").forEach((b) => {
-      b.onclick = async () => {
+    // --- OPCIONES DE STOCK ---
+    menu.querySelectorAll("button").forEach((btn) => {
+      btn.onclick = async () => {
         const ref = doc(db, "vapers", p.id);
 
-        if (b.dataset.action === "stock-on")
+        if (btn.dataset.action === "stock-on") {
           await updateDoc(ref, { enStock: true });
+          showToast("Vaper puesto en STOCK");
+        }
 
-        if (b.dataset.action === "stock-off")
+        if (btn.dataset.action === "stock-off") {
           await updateDoc(ref, { enStock: false });
+          showToast("Vaper puesto SIN STOCK");
+        }
 
-        showToast("Stock actualizado");
+        // cerrar menú
         menu.classList.remove("open");
       };
     });
 
     box.appendChild(item);
   });
+}
+
 }
 
 function setupVapers() {
