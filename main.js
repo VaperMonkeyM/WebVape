@@ -383,8 +383,6 @@ function renderAdminProductList() {
   });
 }
 
-}
-
 function setupVapers() {
   // Listener Firestore
   const q = query(collection(db, "vapers"), orderBy("nombre"));
