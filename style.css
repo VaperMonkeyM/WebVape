@@ -270,28 +270,16 @@ a {
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -1px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--neon-blue) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
   white-space: normal;
   word-spacing: 0.2em;
 }
 
 .hero-title span {
-  color: var(--neon-purple);
-  -webkit-text-fill-color: var(--neon-purple);
-}
-
-/* Emojis en hero */
-.hero-title::after {
-  content: '';
-}
-
-@supports (display: flex) {
-  .hero-title {
-    display: inline;
-  }
+  background: linear-gradient(135deg, var(--text) 0%, var(--neon-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-subtitle {
@@ -887,8 +875,10 @@ a {
   }
 
   .hero-title span {
-    color: var(--neon-purple);
-    -webkit-text-fill-color: var(--neon-purple);
+    background: linear-gradient(135deg, var(--neon-purple) 0%, #d000ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .hero-subtitle {
@@ -1039,8 +1029,15 @@ a {
 
   .hero-title {
     font-size: 2rem;
+    color: var(--text);
+  }
+
+  .hero-title span {
     background: none;
+    -webkit-background-clip: unset;
     -webkit-text-fill-color: unset;
+    background-clip: unset;
+    color: var(--neon-purple);
   }
 
   .hero-subtitle {
