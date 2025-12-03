@@ -420,6 +420,9 @@ function renderProducts() {
   if (currentFilter !== "all")
     list = currentProducts.filter((p) => p.categoriaId === currentFilter);
 
+  // Filtrar solo productos con stock
+  list = list.filter((p) => p.enStock);
+
   list.forEach((p) => {
     const card = document.createElement("article");
     card.className = "product-card";
@@ -431,7 +434,6 @@ function renderProducts() {
     card.innerHTML = `
       <div class="product-image">
         <img src="${img}">
-        ${p.enStock ? "" : `<span class="product-badge">Sin stock</span>`}
       </div>
 
       <div class="product-body">
@@ -439,11 +441,11 @@ function renderProducts() {
         <p class="product-category">${catName}</p>
 
         <div class="product-info">
-          <span class="product-status ${p.enStock ? "in-stock" : "out-stock"}">
-            ${p.enStock ? "En stock" : "Sin stock"}
+          <span class="product-status in-stock">
+            En stock
           </span>
 
-          <button class="btn-tertiary btn-reservar" ${p.enStock ? "" : "disabled"}>
+          <button class="btn-tertiary btn-reservar">
             Reservar
           </button>
         </div>
@@ -491,9 +493,12 @@ function renderAdminProductList() {
           sabores.length
             ? sabores
                 .map(
-                  (s) => `
-                  <div class="flavor-row">
+                  (s, idx) => `
+                  <div class="flavor-row" data-flavor-idx="${idx}">
                     <span>${s.nombre}</span>
+                    <button class="btn-small flavor-stock-btn" style="font-size: 11px; padding: 4px 8px;">
+                      ${s.enStock !== false ? "✓ Stock" : "✗ No stock"}
+                    </button>
                   </div>`
                 )
                 .join("")
@@ -516,6 +521,18 @@ function renderAdminProductList() {
       e.stopPropagation();
       await updateDoc(doc(db, "vapers", p.id), { enStock: !p.enStock });
       showToast("Stock actualizado");
+    });
+
+    // Botones de stock por sabor
+    const flavorBtns = item.querySelectorAll(".flavor-stock-btn");
+    flavorBtns.forEach((btn, idx) => {
+      btn.addEventListener("pointerdown", async (e) => {
+        e.stopPropagation();
+        const nuevosSabores = [...sabores];
+        nuevosSabores[idx].enStock = nuevosSabores[idx].enStock !== false ? false : true;
+        await updateDoc(doc(db, "vapers", p.id), { sabores: nuevosSabores });
+        showToast("Stock del sabor actualizado");
+      });
     });
 
     item.querySelector(".delete-vaper-btn").addEventListener("pointerdown", async (e) => {
@@ -709,7 +726,11 @@ function openVaperModal(vaper) {
   sel.innerHTML = "";
 
   const sabores = Array.isArray(vaper.sabores) ? vaper.sabores : [];
-  sabores.forEach((s) => {
+  
+  // Filtrar solo sabores con stock
+  const saboresEnStock = sabores.filter((s) => s.enStock !== false);
+  
+  saboresEnStock.forEach((s) => {
     const nombre = s.nombre || s;
     const op = document.createElement("option");
     op.value = nombre;
