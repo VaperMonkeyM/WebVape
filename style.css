@@ -85,7 +85,7 @@ img {
   align-items: center;
 }
 
-/* ----------------- LOGO ---------------- */
+/* LOGO */
 
 .logo {
   display: flex;
@@ -95,15 +95,13 @@ img {
   color: var(--text);
 }
 
-.logo-mark {
-  font-size: 32px;
-}
 .logo-mark img {
-  width: 35px;     /* cambia este valor */
-  height: 35px;    /* opcional */
+  width: 35px;
+  height: 35px;
   object-fit: contain;
   display: block;
 }
+
 .logo-top {
   font-size: 22px;
   font-weight: 700;
@@ -117,7 +115,7 @@ img {
   line-height: 1;
 }
 
-/* ----------------- NAV ---------------- */
+/* NAV */
 
 .nav-list {
   display: flex;
@@ -137,7 +135,7 @@ img {
   color: var(--neon-blue);
 }
 
-/* ----------------- CART ---------------- */
+/* CART */
 
 .cart-btn {
   background: transparent;
@@ -161,7 +159,7 @@ img {
   font-weight: 700;
 }
 
-/* ----------------- MENU MOBILE ---------------- */
+/* MOBILE MENU */
 
 .menu-toggle {
   width: 32px;
@@ -181,7 +179,7 @@ img {
 }
 
 /* ====================================================
-   HERO SECTION
+   HERO
 ==================================================== */
 
 .hero {
@@ -249,77 +247,9 @@ img {
   background: #d000ff;
 }
 
-/* Ghost */
-.btn-ghost {
-  border: 1px solid var(--neon-blue);
-  color: var(--neon-blue);
-}
-
-.btn-ghost:hover {
-  background: rgba(0, 217, 255, 0.1);
-}
-
-/* Tertiary */
-.btn-tertiary {
-  border: 1px solid darkgreen;
-  color: darkgreen;
-}
-
-.btn-tertiary:hover {
-  background: rgba(20, 63, 255, 0.1);
-}
-
-.btn-small {
-  padding: 6px 12px;
-  font-size: 14px;
-  background: var(--neon-purple);
-  color: black;
-}
-
-/* ====================================================
-   SECTIONS
-==================================================== */
-
-.section {
-  padding: 80px 0;
-}
-
-.section-title {
-  font-size: 34px;
-  margin-bottom: 10px;
-}
-
-.section-subtitle {
-  color: var(--text-soft);
-  margin-bottom: 25px;
-}
-
 /* ====================================================
    PRODUCT GRID
 ==================================================== */
-
-.products-toolbar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-}
-
-.chip {
-  padding: 6px 14px;
-  background: #12121b;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: 0.2s;
-}
-
-.chip-active,
-.chip:hover {
-  border-color: var(--neon-green);
-  color: var(--neon-green);
-}
 
 .product-grid {
   display: grid;
@@ -343,35 +273,12 @@ img {
   box-shadow: 0 0 15px rgba(0,255,255,0.15);
 }
 
-.product-image {
-  position: relative;
-}
-
 .product-image img {
   width: 100%;
   border-radius: 8px;
 }
 
-.product-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgb(255, 0, 80);
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 6px;
-}
-
-.product-category {
-  color: var(--text-soft);
-  font-size: 14px;
-}
-
-.product-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+/* BADGES */
 
 .in-stock {
   color: var(--neon-green);
@@ -407,110 +314,15 @@ img {
   animation: modalFade 0.3s ease;
 }
 
-@keyframes modalFade {
-  from { opacity: 0; transform: translateY(20px); }
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--text);
-  font-size: 24px;
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  cursor: pointer;
-}
-
 .modal-body {
   display: flex;
   gap: 30px;
   flex-wrap: wrap;
 }
 
-.modal-image-wrapper {
-  flex: 1 1 250px;
-}
-
-.modal-content {
-  flex: 1 1 250px;
-}
-
-.modal-note {
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--text-soft);
-}
-
-/* ====================================================
-   FORMS
-==================================================== */
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  font-weight: 600;
-  font-size: 15px;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #10101a;
-  color: var(--text);
-  font-size: 15px;
-}
-
-.form-error {
-  color: #ff4d6d;
-  margin-top: 8px;
-}
-
-.full {
-  width: 100%;
-}
-
 /* ====================================================
    ADMIN PANEL
 ==================================================== */
-
-.section-admin .admin-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
-  gap: 30px;
-  margin-bottom: 40px;
-}
-
-.admin-card {
-  background: var(--card);
-  padding: 20px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-}
-
-.admin-title {
-  color: var(--neon-blue);
-  margin-bottom: 15px;
-}
-
-.admin-list li {
-  padding: 6px 0;
-  border-bottom: 1px solid #1c1c29;
-  color: var(--text-soft);
-}
-
-.admin-vaper-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 
 .admin-vaper-item {
   background: #12121b;
@@ -530,71 +342,6 @@ img {
   color: #ff3b6a;
 }
 
-.menu-dots {
-  position: relative;
-}
-
-.menu-dots-btn {
-  background: none;
-  border: none;
-  color: red;
-  cursor: pointer;
-}
-
-.menu-dots-menu {
-  background: #181824;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 0;
-  position: absolute;
-  right: 0;
-  top: 30px;
-  width: 150px;
-  display: none;
-  flex-direction: column;
-}
-
-.menu-dots-menu.open {
-  display: flex;
-}
-
-.menu-dots-menu button {
-  background: transparent;
-  border: none;
-  color: var(--text);
-  text-align: left;
-  padding: 8px 14px;
-  cursor: pointer;
-}
-
-.menu-dots-menu button:hover {
-  background: rgba(255,255,255,0.08);
-}
-
-/* ====================================================
-   TOAST
-==================================================== */
-
-.toast {
-  position: fixed;
-  bottom: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--neon-purple);
-  color: black;
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  opacity: 0;
-  pointer-events: none;
-  transition: 0.2s;
-}
-
-.toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-5px);
-}
-
 /* ====================================================
    FOOTER
 ==================================================== */
@@ -605,38 +352,16 @@ img {
   margin-top: 50px;
 }
 
-.footer-inner {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 30px;
-}
-
-.footer-title {
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.footer-links a {
-  color: var(--text-soft);
-  text-decoration: none;
-}
-
-.footer-links a:hover {
-  color: var(--neon-blue);
-}
-
-.footer-bottom {
-  margin-top: 30px;
-  text-align: center;
-  color: var(--text-soft);
-}
-
 /* ====================================================
-   RESPONSIVE
+   RESPONSIVE MÓVIL
 ==================================================== */
 
-@media (max-width: 850px) {
+@media (max-width: 768px) {
+
+  body {
+    padding: 0 12px;
+    overflow-x: hidden;
+  }
 
   .nav-list {
     display: none;
@@ -645,23 +370,61 @@ img {
   .menu-toggle {
     display: flex;
   }
-}
 
-@media (max-width: 600px) {
-  .hero-inner {
-    flex-direction: column;
+  /* HERO */
+  .hero {
+    padding: 60px 20px;
     text-align: center;
   }
 
-  .product-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  .hero-title {
+    font-size: 2rem;
   }
 
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* PRODUCT GRID */
+  .product-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .product-card {
+    padding: 12px;
+  }
+
+  .product-card img {
+    height: 130px;
+    object-fit: contain;
+  }
+
+  /* MODAL */
   .modal {
+    width: 95%;
     padding: 20px;
   }
 
   .modal-body {
     flex-direction: column;
+  }
+
+  /* ADMIN */
+  .admin-vaper-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 40px 20px;
   }
 }
