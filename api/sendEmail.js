@@ -61,6 +61,8 @@ Hola ${nombre},
 
 Nos pondremos en contacto contigo pronto por Instagram: @vaper__monkey
 
+C/Plaza Santa Maria, 26, 41620 Marchena, Sevilla
+
 Gracias por tu compra,
 Vaper Monkey 🐒🌴💨
       `
