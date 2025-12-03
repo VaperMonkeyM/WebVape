@@ -494,3 +494,24 @@ document.addEventListener("DOMContentLoaded", () => {
   setupVapers();
   setupModal();
 });
+// ==================
+//  MOBILE MENU
+// ==================
+
+const menuToggle = document.querySelector(".menu-toggle");
+const mobileMenu = document.getElementById("mobileMenu");
+
+if (menuToggle) {
+  menuToggle.addEventListener("click", () => {
+    mobileMenu.classList.toggle("hidden");
+  });
+}
+
+// Cerrar si pulsa fuera
+document.addEventListener("click", (e) => {
+  if (!mobileMenu.classList.contains("hidden")) {
+    if (!mobileMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+      mobileMenu.classList.add("hidden");
+    }
+  }
+});

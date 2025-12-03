@@ -428,3 +428,39 @@ img {
     padding: 40px 20px;
   }
 }
+/* ============================================
+   MOBILE MENU OVERLAY
+============================================ */
+
+.mobile-menu {
+  position: fixed;
+  top: 70px;
+  right: 12px;
+  background: #11111a;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  padding: 15px 0;
+  z-index: 999;
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+  animation: slideDown 0.25s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-link {
+  padding: 12px 20px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.mobile-link:hover {
+  background: rgba(0, 217, 255, 0.1);
+  color: var(--neon-blue);
+}
