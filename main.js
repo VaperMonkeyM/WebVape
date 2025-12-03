@@ -52,7 +52,7 @@ let currentCategories = [];
 let currentFilter = "all";
 let reservasCount = 0;
 
-const WHATSAPP_NUMBER = "34744489428";
+const WHATSAPP_NUMBER = "34";
 
 // Helpers
 const $ = (s) => document.querySelector(s);
@@ -412,71 +412,41 @@ function setupVapers() {
 // 7. MODAL + WHATSAPP
 // ======================================================
 
-let modalVaper = null;
+import nodemailer from "nodemailer";
 
-function openVaperModal(vaper) {
-  modalVaper = vaper;
-  $("#modalVaperImage").src = vaper.imagenUrl;
-  $("#modalVaperName").textContent = vaper.nombre;
+export default async function handler(req, res) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
 
-  const cat = currentCategories.find((c) => c.id === vaper.categoriaId);
-  $("#modalVaperCategory").textContent = cat ? cat.nombre : "";
+  const { modelo, sabor, nombre, instagram } = req.body;
 
-  const sel = $("#modalFlavorSelect");
-  sel.innerHTML = "";
-  vaper.sabores.forEach((s) => {
-    const op = document.createElement("option");
-    op.value = s;
-    op.textContent = s;
-    sel.appendChild(op);
-  });
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS, // contraseña de APP
+      },
+    });
 
-  $("#vaperModal").classList.remove("hidden");
-}
-
-function closeVaperModal() {
-  $("#vaperModal").classList.add("hidden");
-  modalVaper = null;
-}
-
-function setupModal() {
-  $("#modalCloseBtn")?.addEventListener("click", closeVaperModal);
-
-  $("#vaperModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "vaperModal") closeVaperModal();
-  });
-
-  $("#btnReservar")?.addEventListener("click", () => {
-    if (!currentUser) {
-      $("#modalError").textContent = "Debes iniciar sesión.";
-      return;
-    }
-
-    const sabor = $("#modalFlavorSelect").value;
-    if (!sabor) {
-      $("#modalError").textContent = "Elige un sabor.";
-      return;
-    }
-
-    const text = `
-Reserva Vaper:
-Modelo: ${modalVaper.nombre}
+    const info = await transporter.sendMail({
+      from: `"Vaper Monkey" <${process.env.GMAIL_USER}>`,
+      to: process.env.ADMIN_EMAIL,
+      subject: "Nueva reserva de vaper",
+      text: `
+Nueva reserva:
+Modelo: ${modelo}
 Sabor: ${sabor}
-Nombre: ${currentUserData.nombre}
-Instagram: ${currentUserData.instagram}
-    `.trim();
+Nombre: ${nombre}
+Instagram: ${instagram}
+      `,
+    });
 
-    reservasCount++;
-    $(".cart-count").textContent = reservasCount;
+    return res.status(200).json({ ok: true, info });
 
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
-      "_blank"
-    );
-
-    showToast("Abriendo WhatsApp...");
-    closeVaperModal();
-  });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
 }
 
 // ======================================================
