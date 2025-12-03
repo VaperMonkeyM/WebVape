@@ -330,58 +330,32 @@ function renderAdminProductList() {
         <span class="admin-vaper-meta">${catName}</span>
       </div>
 
-      <div class="admin-actions">
-        <span class="admin-badge-stock ${p.enStock ? "ok" : "off"}">
-          ${p.enStock ? "En stock" : "Sin stock"}
-        </span>
-
-        <div class="menu-dots">
-          <button class="menu-dots-btn">
-            <i class="fa-solid fa-ellipsis-vertical"></i>
-          </button>
-
-          <div class="menu-dots-menu">
-            <button data-action="stock-on">Marcar en stock</button>
-            <button data-action="stock-off">Marcar sin stock</button>
-          </div>
-        </div>
-      </div>
+      <span class="admin-badge-stock ${p.enStock ? "ok" : "off"} stock-toggle">
+        ${p.enStock ? "En stock" : "Sin stock"}
+      </span>
     `;
 
-    // --- ABRIR / CERRAR MENÚ ----
-    const menuBtn = item.querySelector(".menu-dots-btn");
-    const menu = item.querySelector(".menu-dots-menu");
+    // -- CLICK EN "EN STOCK" / "SIN STOCK"
+    const badge = item.querySelector(".stock-toggle");
 
-    menuBtn.onclick = (e) => {
-      e.stopPropagation();
-      // Cerrar otros menús
-      $$(".menu-dots-menu").forEach((m) => m.classList.remove("open"));
-      menu.classList.toggle("open");
+    badge.onclick = async () => {
+      const nuevoValor = !p.enStock; // lo contrario
+      const ref = doc(db, "vapers", p.id);
+
+      await updateDoc(ref, { enStock: nuevoValor });
+
+      showToast(
+        nuevoValor
+          ? "El vaper ahora está EN STOCK"
+          : "El vaper ahora está SIN STOCK"
+      );
     };
-
-    // --- OPCIONES DE STOCK ---
-    menu.querySelectorAll("button").forEach((btn) => {
-      btn.onclick = async () => {
-        const ref = doc(db, "vapers", p.id);
-
-        if (btn.dataset.action === "stock-on") {
-          await updateDoc(ref, { enStock: true });
-          showToast("Vaper puesto en STOCK");
-        }
-
-        if (btn.dataset.action === "stock-off") {
-          await updateDoc(ref, { enStock: false });
-          showToast("Vaper puesto SIN STOCK");
-        }
-
-        // cerrar menú
-        menu.classList.remove("open");
-      };
-    });
 
     box.appendChild(item);
   });
 }
+
+
 
 function setupVapers() {
   // Listener Firestore
