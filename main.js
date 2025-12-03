@@ -168,12 +168,16 @@ function updateAuthUI() {
   const logout = $("#btnLogout");
   const adminLink = $(".nav-admin-link");
   const mobileAdminLinks = $$(".mobile-admin-link");
+  const authLinks = $$(".nav-auth-link");
+  const mobileAuthLinks = $$(".mobile-auth-link");
 
   if (!currentUser) {
     if (label) label.textContent = "";
     if (logout) logout.classList.add("hidden");
     if (adminLink) adminLink.classList.add("hidden");
     mobileAdminLinks.forEach(link => link.classList.add("hidden"));
+    authLinks.forEach(link => link.classList.remove("hidden"));
+    mobileAuthLinks.forEach(link => link.classList.remove("hidden"));
     return;
   }
 
@@ -198,6 +202,10 @@ function updateAuthUI() {
       link.classList.add("hidden");
     }
   });
+
+  // Ocultar links de auth si está logueado
+  authLinks.forEach(link => link.classList.add("hidden"));
+  mobileAuthLinks.forEach(link => link.classList.add("hidden"));
 }
 
 function setupAuthForms() {
@@ -747,6 +755,14 @@ function setupModalReserva() {
         sabor,
         nombre: currentUserData?.nombre || "",
         instagram: currentUserData?.instagram || "",
+        hora: new Date().toLocaleString("es-ES", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        })
       }),
     }).catch(() => {});
 

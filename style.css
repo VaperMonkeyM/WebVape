@@ -260,6 +260,9 @@ a {
 .hero-content {
   flex: 1;
   min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .hero-title {
@@ -271,11 +274,24 @@ a {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  white-space: normal;
+  word-spacing: 0.2em;
 }
 
 .hero-title span {
   color: var(--neon-purple);
   -webkit-text-fill-color: var(--neon-purple);
+}
+
+/* Emojis en hero */
+.hero-title::after {
+  content: '';
+}
+
+@supports (display: flex) {
+  .hero-title {
+    display: inline;
+  }
 }
 
 .hero-subtitle {
@@ -817,6 +833,29 @@ a {
 }
 
 /* ====================================================
+   TABLET (768px - 1024px)
+==================================================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .hero-inner {
+    gap: 40px;
+  }
+
+  .hero-title {
+    font-size: 2.8rem;
+  }
+
+  .section-title {
+    font-size: 2.2rem;
+  }
+}
+
+/* ====================================================
    DESKTOP FIX — NUEVO (solo PC)
 ==================================================== */
 
@@ -831,18 +870,25 @@ a {
     margin: auto;
     justify-content: space-between;
     gap: 80px;
+    flex-wrap: nowrap;
   }
 
   .hero-content {
-    flex: 1;
+    flex: 0 1 50%;
   }
 
   .hero-visual {
-    flex: 1;
+    flex: 0 1 50%;
   }
 
   .hero-title {
     font-size: 3.8rem;
+    line-height: 1.2;
+  }
+
+  .hero-title span {
+    color: var(--neon-purple);
+    -webkit-text-fill-color: var(--neon-purple);
   }
 
   .hero-subtitle {
@@ -868,7 +914,7 @@ a {
   }
 
   .product-grid {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 32px;
   }
 

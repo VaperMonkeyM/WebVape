@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
 
-  const { modelo, sabor, nombre, instagram } = req.body;
+  const { modelo, sabor, nombre, instagram, hora } = req.body;
 
   if (!modelo || !sabor || !nombre || !instagram) {
     return res.status(400).json({ ok: false, error: "Datos incompletos" });
@@ -37,6 +37,8 @@ Nueva reserva:
 
 👤 Cliente: ${nombre}
 📸 Instagram: ${instagram}
+
+🕐 Hora del pedido: ${hora}
       `
     });
 
