@@ -610,45 +610,13 @@ function setupVapers() {
 function addFlavorEditRow(container, flavor = { nombre: "", imagenUrl: "" }) {
   const row = document.createElement("div");
   row.className = "flavor-edit-row";
-  row.dataset.currentUrl = flavor.imagenUrl || "";
 
   row.innerHTML = `
     <input type="text" class="flavor-name" placeholder="Nombre del sabor"
       value="${flavor.nombre || ""}">
-    <input type="file" class="flavor-file" accept="image/*">
-    ${
-      flavor.imagenUrl
-        ? `<button type="button" class="btn-small view-flavor">Ver</button>`
-        : ""
-    }
+    <input type="text" class="flavor-url" placeholder="URL de imagen del sabor (opcional)"
+      value="${flavor.imagenUrl || ""}">
   `;
-
-  const viewBtn = row.querySelector(".view-flavor");
-  if (viewBtn) {
-    viewBtn.addEventListener("click", () => {
-      const url = row.dataset.currentUrl;
-      if (url) window.open(url, "_blank");
-    });
-  }
-
-  // Preview selected file in the edit row (optional small preview)
-  const fileInput = row.querySelector('.flavor-file');
-  const preview = document.createElement('img');
-  preview.className = 'flavor-edit-preview';
-  preview.style.maxHeight = '80px';
-  preview.style.marginLeft = '10px';
-  preview.style.objectFit = 'cover';
-  if (row.dataset.currentUrl) {
-    preview.src = row.dataset.currentUrl;
-  }
-  fileInput.parentNode.insertBefore(preview, fileInput.nextSibling);
-
-  fileInput.addEventListener('change', (ev) => {
-    const f = ev.target.files[0];
-    if (!f) return;
-    const url = URL.createObjectURL(f);
-    preview.src = url;
-  });
 
   container.appendChild(row);
 }
@@ -710,23 +678,14 @@ function setupEditVaperModal() {
 
     const rows = Array.from(document.querySelectorAll(".flavor-edit-row"));
 
-    const sabores = (
-      await Promise.all(
-        rows.map(async (row) => {
-          const name = row.querySelector(".flavor-name").value.trim();
-          if (!name) return null;
-
-          const file = row.querySelector(".flavor-file").files[0];
-          let url = row.dataset.currentUrl || "";
-
-          if (file) {
-            url = await uploadFlavorImage(file, editingVaper.id, name);
-          }
-
-          return { nombre: name, imagenUrl: url };
-        })
-      )
-    ).filter(Boolean);
+    const sabores = rows
+      .map((row) => {
+        const name = row.querySelector(".flavor-name").value.trim();
+        const url = row.querySelector(".flavor-url").value.trim();
+        if (!name) return null;
+        return { nombre: name, imagenUrl: url || "" };
+      })
+      .filter(Boolean);
 
     await updateDoc(ref, {
       nombre,
