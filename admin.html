@@ -2,10 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Admin – Vaper Monkey</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <title>Panel Admin — Vaper Monkey</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -13,83 +10,75 @@
 
 <header class="header">
   <div class="container header-inner">
-
-    <a href="index.html" class="logo">
-      <span class="logo-mark">🐒</span>
-      <span class="logo-text">
+    <a class="logo" href="index.html">
+      <span class="logo-mark"><img src="content.png"></span>
+      <span>
         <span class="logo-top">Vaper</span>
         <span class="logo-bottom">Monkey</span>
       </span>
     </a>
-
-    <button id="btnLogout" class="btn-small">Salir</button>
   </div>
 </header>
 
-<section class="section section-admin">
-  <div class="container">
+<section class="section-admin container">
 
-    <h2 class="section-title">Panel Admin</h2>
-    <p class="section-subtitle">Gestiona categorías y vapers.</p>
+  <h2 class="section-title">Panel de administración</h2>
 
-    <div class="admin-grid">
+  <!-- Categorías -->
+  <div class="admin-card">
+    <h3 class="admin-title">Categorías</h3>
 
-      <!-- Categorías -->
-      <div class="admin-card">
-        <h3 class="admin-title">Añadir categoría</h3>
+    <form id="categoryForm" class="admin-form">
+      <input id="catName" type="text" placeholder="Nueva categoría">
+      <button class="btn-primary">Añadir</button>
+    </form>
 
-        <form id="categoryForm" class="form form-compact">
-          <div class="form-group">
-            <label>Nombre</label>
-            <input id="catName" required>
-          </div>
+    <div id="adminCategoryList" class="admin-list"></div>
+  </div>
 
-          <button class="btn-tertiary full">Guardar</button>
-          <p id="categoryError" class="form-error"></p>
-        </form>
+  <!-- Vapers -->
+  <div class="admin-card">
+    <h3 class="admin-title">Vapers</h3>
 
-        <ul id="adminCategoryList" class="admin-list"></ul>
-      </div>
+    <form id="vaperForm" class="admin-form">
+      <input id="vaperName" type="text" placeholder="Nombre del vaper">
+      <select id="vaperCategory"></select>
+      <input id="vaperImage" type="text" placeholder="Imagen general (opcional)">
+      <button class="btn-primary">Crear vaper</button>
+    </form>
 
-      <!-- Vapers -->
-      <div class="admin-card">
-        <h3 class="admin-title">Añadir vaper</h3>
-
-        <form id="vaperForm" class="form form-compact">
-          <div class="form-group">
-            <label>Nombre</label>
-            <input id="vaperName" required>
-          </div>
-
-          <div class="form-group">
-            <label>Categoría</label>
-            <select id="vaperCategory" required></select>
-          </div>
-
-          <div class="form-group">
-            <label>Sabores (coma)</label>
-            <input id="vaperFlavors" placeholder="Fresa, Uva..." required>
-          </div>
-
-          <div class="form-group">
-            <label>Imagen URL</label>
-            <input id="vaperImageFile" type="file" accept="image/*" required>
-          </div>
-
-          <button class="btn-tertiary full">Guardar</button>
-          <p id="vaperError" class="form-error"></p>
-        </form>
-      </div>
-
-    </div>
-
-    <div class="admin-card">
-      <h3 class="admin-title">Lista de vapers</h3>
-      <div id="adminVaperList" class="admin-vaper-list"></div>
-    </div>
-
+    <div id="adminVaperList" class="admin-vapers"></div>
   </div>
 </section>
+
+<!-- MODAL EDITOR VAPER -->
+<div id="editVaperModal" class="modal-overlay hidden">
+  <div class="modal">
+    <button id="editVaperClose" class="modal-close">✕</button>
+
+    <h2 id="editVaperTitle"></h2>
+
+    <div class="modal-body">
+      <label>Nombre</label>
+      <input id="editVaperName" type="text">
+
+      <label>Categoría</label>
+      <select id="editVaperCategory"></select>
+
+      <label>Imagen general</label>
+      <input id="editVaperImg" type="text">
+
+      <h3>Sabores</h3>
+      <div id="editVaperFlavors"></div>
+
+      <button id="addFlavorBtn" class="btn-ghost full">Añadir sabor</button>
+
+      <button id="saveVaperChanges" class="btn-primary full" style="margin-top:20px">
+        Guardar cambios
+      </button>
+    </div>
+  </div>
+</div>
 
 <script type="module" src="main.js"></script>
 </body>

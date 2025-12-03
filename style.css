@@ -616,3 +616,68 @@ img {
 .admin-menu-item:hover {
   background: rgba(0, 217, 255, 0.1);
 }
+/* -----------------------------------
+   ADMIN REESTILIZADO
+----------------------------------- */
+
+.admin-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.admin-form input,
+.admin-form select {
+  flex: 1;
+}
+
+.admin-vapers {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-vaper-block {
+  background: #15151f;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.vaper-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vaper-flavors {
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 2px solid var(--neon-blue);
+}
+
+.flavor-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.flavor-tools button {
+  margin-left: 5px;
+}
+
+/* Modal edit vaper */
+#editVaperModal .modal {
+  max-width: 520px;
+}
+
+#editVaperFlavors .flavor-edit-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#editVaperFlavors input {
+  flex: 1;
+}
