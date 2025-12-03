@@ -1,7 +1,7 @@
 // main.js (type="module")
 
 // ======================================================
-// 1. IMPORTAR FIREBASE Y CONFIG
+// 1. IMPORTAR FIREBASE Y CONFIG PERSONALIZADA
 // ======================================================
 
 import { firebaseConfig } from "./firebase/firebaseConfig.js";
@@ -20,10 +20,10 @@ import {
   getFirestore,
   collection,
   addDoc,
+  getDocs,
   doc,
   setDoc,
   updateDoc,
-  deleteDoc,
   onSnapshot,
   getDoc,
   query,
@@ -100,16 +100,10 @@ function updateAuthUI() {
     return;
   }
 
-  if (label && currentUserData) {
-    label.textContent = `Hola, ${currentUserData.nombre}`;
-  }
+  if (label) label.textContent = `Hola, ${currentUserData.nombre}`;
   logout?.classList.remove("hidden");
 
-  if (currentRole === "admin") {
-    adminLink?.classList.remove("hidden");
-  } else {
-    adminLink?.classList.add("hidden");
-  }
+  if (currentRole === "admin") adminLink?.classList.remove("hidden");
 }
 
 function setupAuthForms() {
@@ -119,7 +113,7 @@ function setupAuthForms() {
   // Login
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    $("#loginError") && ($("#loginError").textContent = "");
+    $("#loginError").textContent = "";
 
     const email = $("#loginEmail").value.trim();
     const pass = $("#loginPassword").value;
@@ -129,14 +123,14 @@ function setupAuthForms() {
       showToast("Sesión iniciada");
       window.location.href = "index.html";
     } catch {
-      $("#loginError") && ($("#loginError").textContent = "Credenciales incorrectas.");
+      $("#loginError").textContent = "Credenciales incorrectas.";
     }
   });
 
   // Registro
   registerForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    $("#registerError") && ($("#registerError").textContent = "");
+    $("#registerError").textContent = "";
 
     const nombre = $("#regName").value.trim();
     const instagram = $("#regIg").value.trim();
@@ -145,6 +139,7 @@ function setupAuthForms() {
 
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
+
       await setDoc(doc(db, "users", cred.user.uid), {
         nombre,
         instagram,
@@ -156,7 +151,7 @@ function setupAuthForms() {
       showToast("Cuenta creada");
       window.location.href = "login.html";
     } catch {
-      $("#registerError") && ($("#registerError").textContent = "Error al registrar.");
+      $("#registerError").textContent = "Error al registrar.";
     }
   });
 
@@ -187,7 +182,7 @@ function renderCategoryFilters() {
 
   box.innerHTML = "";
 
-  // Botón "Todos"
+  // ALL
   const btnAll = document.createElement("button");
   btnAll.className = "chip";
   btnAll.dataset.filter = "all";
@@ -200,21 +195,21 @@ function renderCategoryFilters() {
   };
   box.appendChild(btnAll);
 
-  // Cada categoría
+  // Otras categorías
   currentCategories.forEach((c) => {
-    const b = document.createElement("button");
-    b.className = "chip";
-    b.textContent = c.nombre;
-    b.dataset.filter = c.id;
-    if (currentFilter === c.id) b.classList.add("chip-active");
+    const btn = document.createElement("button");
+    btn.className = "chip";
+    btn.textContent = c.nombre;
+    btn.dataset.filter = c.id;
+    if (currentFilter === c.id) btn.classList.add("chip-active");
 
-    b.onclick = () => {
+    btn.onclick = () => {
       currentFilter = c.id;
       renderProducts();
       renderCategoryFilters();
     };
 
-    box.appendChild(b);
+    box.appendChild(btn);
   });
 }
 
@@ -228,47 +223,7 @@ function renderAdminCategoryList() {
 
   currentCategories.forEach((c) => {
     const li = document.createElement("li");
-    li.className = "admin-cat-item";
-    li.innerHTML = `
-      <span>${c.nombre}</span>
-      <div class="admin-actions">
-        <button class="menu-btn" type="button">⋮</button>
-        <div class="admin-menu hidden">
-          <div class="admin-menu-item edit-cat">✏️ Editar</div>
-          <div class="admin-menu-item delete-cat">🗑 Eliminar</div>
-        </div>
-      </div>
-    `;
-
-    const menuBtn = li.querySelector(".menu-btn");
-    const menu = li.querySelector(".admin-menu");
-
-    menuBtn.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      menu.classList.toggle("hidden");
-    });
-
-    // Editar categoría (solo nombre)
-    li.querySelector(".edit-cat").addEventListener("click", async () => {
-      const nuevoNombre = prompt("Nuevo nombre de la categoría:", c.nombre);
-      if (!nuevoNombre) return;
-      await updateDoc(doc(db, "categorias", c.id), {
-        nombre: nuevoNombre.trim(),
-        slug: slugify(nuevoNombre),
-      });
-      showToast("Categoría actualizada");
-    });
-
-    // Eliminar categoría
-    li.querySelector(".delete-cat").addEventListener("click", async () => {
-      const ok = confirm(
-        "¿Eliminar esta categoría? Los vapers seguirán existiendo, pero sin categoría."
-      );
-      if (!ok) return;
-      await deleteDoc(doc(db, "categorias", c.id));
-      showToast("Categoría eliminada");
-    });
-
+    li.textContent = c.nombre;
     list.appendChild(li);
 
     const opt = document.createElement("option");
@@ -279,18 +234,17 @@ function renderAdminCategoryList() {
 }
 
 function setupCategories() {
-  // Escuchar categorías
-  const qCat = query(collection(db, "categorias"), orderBy("nombre"));
-  onSnapshot(qCat, (snap) => {
+  const q = query(collection(db, "categorias"), orderBy("nombre"));
+
+  onSnapshot(q, (snap) => {
     currentCategories = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderCategoryFilters();
     renderAdminCategoryList();
   });
 
-  // Formulario añadir categoría
-  const form = $("#categoryForm");
-  form?.addEventListener("submit", async (e) => {
+  $("#categoryForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+
     const name = $("#catName").value.trim();
     if (!name) return;
 
@@ -314,23 +268,21 @@ function renderProducts() {
 
   grid.innerHTML = "";
 
-  // Solo vapers en stock
-  let list = currentProducts.filter((p) => p.enStock);
-
-  if (currentFilter !== "all") {
+  let list = currentProducts;
+  if (currentFilter !== "all")
     list = list.filter((p) => p.categoriaId === currentFilter);
-  }
 
   list.forEach((p) => {
     const card = document.createElement("article");
     card.className = "product-card";
 
     const catObj = currentCategories.find((c) => c.id === p.categoriaId);
-    const catName = catObj ? catObj.nombre : "—";
+    const catName = catObj ? c.nombre : "—";
 
     card.innerHTML = `
       <div class="product-image">
-        <img src="${p.imagenUrl}" alt="${p.nombre}">
+        <img src="${p.imagenUrl}">
+        ${p.enStock ? "" : `<span class="product-badge">Sin stock</span>`}
       </div>
 
       <div class="product-body">
@@ -338,9 +290,11 @@ function renderProducts() {
         <p class="product-category">${catName}</p>
 
         <div class="product-info">
-          <span class="product-status in-stock">En stock</span>
+          <span class="product-status ${p.enStock ? "in-stock" : "out-stock"}">
+            ${p.enStock ? "En stock" : "Sin stock"}
+          </span>
 
-          <button class="btn-tertiary btn-reservar">
+          <button class="btn-tertiary btn-reservar"${p.enStock ? "" : "disabled"}>
             Reservar
           </button>
         </div>
@@ -348,92 +302,12 @@ function renderProducts() {
     `;
 
     card.querySelector(".btn-reservar").onclick = () => openVaperModal(p);
+
     grid.appendChild(card);
   });
 }
 
-// ---------- ADMIN LISTA VAPERS CON MENÚ ⋮ ----------
-
-function openEditVaperModal(p) {
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
-
-  overlay.innerHTML = `
-    <div class="modal">
-      <button class="modal-close" id="editCloseBtn">×</button>
-      <h3>Editar vaper</h3>
-
-      <div class="form-group">
-        <label>Nombre</label>
-        <input id="editName" value="${p.nombre}">
-      </div>
-
-      <div class="form-group">
-        <label>Sabores (separados por coma)</label>
-        <input id="editFlavors" value="${p.sabores.join(", ")}">
-      </div>
-
-      <div class="form-group">
-        <label>Imagen URL</label>
-        <input id="editImage" value="${p.imagenUrl}">
-      </div>
-
-      <div class="form-group">
-        <label>Categoría</label>
-        <select id="editCategory">
-          ${currentCategories
-            .map(
-              (c) => `
-            <option value="${c.id}" ${c.id === p.categoriaId ? "selected" : ""}>
-              ${c.nombre}
-            </option>`
-            )
-            .join("")}
-        </select>
-      </div>
-
-      <div class="hero-actions" style="margin-top:18px;">
-        <button id="editSave" class="btn-primary">Guardar</button>
-        <button id="editCancel" class="btn-tertiary">Cancelar</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  const close = () => overlay.remove();
-  overlay.querySelector("#editCloseBtn").onclick = close;
-  overlay.querySelector("#editCancel").onclick = close;
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
-  });
-
-  overlay.querySelector("#editSave").onclick = async () => {
-    const nombre = overlay.querySelector("#editName").value.trim();
-    const sabores = overlay
-      .querySelector("#editFlavors")
-      .value.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const imagenUrl = overlay.querySelector("#editImage").value.trim();
-    const categoriaId = overlay.querySelector("#editCategory").value;
-
-    if (!nombre || !imagenUrl || !categoriaId) {
-      alert("Rellena todos los campos.");
-      return;
-    }
-
-    await updateDoc(doc(db, "vapers", p.id), {
-      nombre,
-      sabores,
-      imagenUrl,
-      categoriaId,
-    });
-
-    showToast("Vaper actualizado");
-    close();
-  };
-}
+// ⭐⭐⭐ FIX COMPLETO PARA MÓVIL — SECCIÓN ADMIN ⭐⭐⭐
 
 function renderAdminProductList() {
   const box = $("#adminVaperList");
@@ -454,103 +328,51 @@ function renderAdminProductList() {
         <span class="admin-vaper-meta">${catName}</span>
       </div>
 
-      <div class="admin-actions">
-        <span class="stock-toggle admin-badge-stock ${
-          p.enStock ? "ok" : "off"
-        }">
-          ${p.enStock ? "En stock" : "Sin stock"}
-        </span>
-
-        <button class="menu-btn" type="button">⋮</button>
-
-        <div class="admin-menu hidden">
-          <div class="admin-menu-item toggle-stock">
-            ${p.enStock ? "❌ Quitar stock" : "✅ Poner stock"}
-          </div>
-          <div class="admin-menu-item edit-vaper">✏️ Editar</div>
-          <div class="admin-menu-item delete-vaper">🗑 Eliminar</div>
-        </div>
-      </div>
+      <span class="admin-badge-stock ${p.enStock ? "ok" : "off"} stock-toggle">
+        ${p.enStock ? "En stock" : "Sin stock"}
+      </span>
     `;
 
-    const stockBadge = item.querySelector(".stock-toggle");
-    const menuBtn = item.querySelector(".menu-btn");
-    const menu = item.querySelector(".admin-menu");
+    // ************** FIX MÓVIL **************
+    const badge = item.querySelector(".stock-toggle");
 
-    // Toggle stock desde el texto
-    stockBadge.addEventListener("pointerdown", async (e) => {
+    badge.addEventListener("pointerdown", async (e) => {
       e.stopPropagation();
-      const nuevo = !p.enStock;
-      await updateDoc(doc(db, "vapers", p.id), { enStock: nuevo });
-      showToast("Stock actualizado");
-    });
+      e.preventDefault();
 
-    // Abrir / cerrar menú ⋮
-    menuBtn.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      menu.classList.toggle("hidden");
-    });
+      const nuevoValor = !p.enStock;
+      const ref = doc(db, "vapers", p.id);
+      await updateDoc(ref, { enStock: nuevoValor });
 
-    // Menú: toggle stock
-    item.querySelector(".toggle-stock").addEventListener("click", async () => {
-      const nuevo = !p.enStock;
-      await updateDoc(doc(db, "vapers", p.id), { enStock: nuevo });
-      showToast("Stock actualizado");
-    });
-
-    // Menú: editar vaper
-    item.querySelector(".edit-vaper").addEventListener("click", () => {
-      openEditVaperModal(p);
-    });
-
-    // Menú: eliminar vaper
-    item.querySelector(".delete-vaper").addEventListener("click", async () => {
-      const ok = confirm("¿Eliminar este vaper?");
-      if (!ok) return;
-      await deleteDoc(doc(db, "vapers", p.id));
-      showToast("Vaper eliminado");
+      showToast(
+        nuevoValor
+          ? "El vaper está ahora EN STOCK"
+          : "El vaper está ahora SIN STOCK"
+      );
     });
 
     box.appendChild(item);
   });
-
- // Cerrar menús solo si haces click FUERA del menú y del botón ⋮
-  document.addEventListener("click", (e) => {
-    $$(".admin-menu").forEach((menu) => {
-      if (
-        !menu.contains(e.target) &&             // click fuera del menú
-        !menu.previousElementSibling.contains(e.target) // click fuera del botón ⋮
-      ) {
-        menu.classList.add("hidden");
-      }
-    });
-  });
-
 }
 
 function setupVapers() {
-  // Listener Firestore
   const q = query(collection(db, "vapers"), orderBy("nombre"));
+
   onSnapshot(q, (snap) => {
     currentProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderProducts();
     renderAdminProductList();
   });
 
-  // Añadir vaper
-  const form = $("#vaperForm");
-  form?.addEventListener("submit", async (e) => {
+  $("#vaperForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const nombre = $("#vaperName").value.trim();
     const categoriaId = $("#vaperCategory").value;
-    const sabores = $("#vaperFlavors")
-      .value.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const sabores = $("#vaperFlavors").value.split(",").map((s) => s.trim());
     const imagenUrl = $("#vaperImage").value.trim();
 
-    if (!nombre || !categoriaId || !imagenUrl || !sabores.length) return;
+    if (!nombre || !categoriaId || !imagenUrl) return;
 
     await addDoc(collection(db, "vapers"), {
       nombre,
@@ -561,13 +383,13 @@ function setupVapers() {
       creadoEn: new Date(),
     });
 
-    form.reset();
+    e.target.reset();
     showToast("Vaper añadido");
   });
 }
 
 // ======================================================
-// 7. MODAL + RESERVA (ENVÍO POR EMAIL / API)
+// 7. MODAL + EMAIL
 // ======================================================
 
 let modalVaper = null;
@@ -589,7 +411,6 @@ function openVaperModal(vaper) {
     sel.appendChild(op);
   });
 
-  $("#modalError").textContent = "";
   $("#vaperModal").classList.remove("hidden");
 }
 
@@ -606,7 +427,7 @@ function setupModal() {
   });
 
   $("#btnReservar")?.addEventListener("click", () => {
-    if (!currentUser || !currentUserData) {
+    if (!currentUser) {
       $("#modalError").textContent = "Debes iniciar sesión.";
       return;
     }
@@ -618,9 +439,9 @@ function setupModal() {
     }
 
     reservasCount++;
-    const cartCount = $(".cart-count");
-    if (cartCount) cartCount.textContent = reservasCount;
+    $(".cart-count").textContent = reservasCount;
 
+    // ENVIAR A VERCELO (GMAIL BOT)
     fetch("/api/sendEmail", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -651,33 +472,7 @@ function setupModal() {
 }
 
 // ======================================================
-// 8. MENÚ MÓVIL
-// ======================================================
-
-function setupMobileMenu() {
-  const menuToggle = document.querySelector(".menu-toggle");
-  const mobileMenu = document.getElementById("mobileMenu");
-
-  if (!menuToggle || !mobileMenu) return;
-
-  menuToggle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    mobileMenu.classList.toggle("hidden");
-  });
-
-  document.addEventListener("pointerdown", (e) => {
-    if (
-      !mobileMenu.classList.contains("hidden") &&
-      !mobileMenu.contains(e.target) &&
-      !menuToggle.contains(e.target)
-    ) {
-      mobileMenu.classList.add("hidden");
-    }
-  });
-}
-
-// ======================================================
-// 9. INIT GLOBAL
+// 8. INICIALIZACIÓN
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -685,10 +480,28 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCategories();
   setupVapers();
   setupModal();
-  setupMobileMenu();
+});
 
-  const yearSpan = $("#year");
-  if (yearSpan) {
-    yearSpan.textContent = new Date().getFullYear();
+// ======================================================
+// MENU MÓVIL
+// ======================================================
+
+const menuToggle = document.querySelector(".menu-toggle");
+const mobileMenu = document.getElementById("mobileMenu");
+
+if (menuToggle) {
+  menuToggle.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    mobileMenu.classList.toggle("hidden");
+  });
+}
+
+document.addEventListener("pointerdown", (e) => {
+  if (
+    !mobileMenu.classList.contains("hidden") &&
+    !mobileMenu.contains(e.target) &&
+    !menuToggle.contains(e.target)
+  ) {
+    mobileMenu.classList.add("hidden");
   }
 });
