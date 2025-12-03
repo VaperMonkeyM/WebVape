@@ -346,11 +346,24 @@ img {
    FOOTER
 ==================================================== */
 
+.footer-inner {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+  flex-wrap: wrap;
+  gap: 40px;
+}
 .footer {
   padding: 60px 0 25px;
   background: #0c0c14;
   margin-top: 50px;
 }
+
+.footer-column {
+  min-width: 200px;
+}
+
 
 /* ====================================================
    RESPONSIVE MÓVIL
@@ -463,4 +476,54 @@ img {
 .mobile-link:hover {
   background: rgba(0, 217, 255, 0.1);
   color: var(--neon-blue);
+}
+/* FORM FIX */
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: #0f0f17;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 8px rgba(191, 0, 255, 0.5);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  background: var(--card);
+  padding: 25px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+/* CATEGORÍA CHIPS */
+.chip {
+  padding: 6px 14px;
+  background: #15151f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-soft);
+  transition: 0.25s;
+}
+
+.chip:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.chip-active {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+  box-shadow: 0 0 10px rgba(57,255,20,0.4);
 }
