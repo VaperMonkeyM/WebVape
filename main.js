@@ -1,7 +1,7 @@
 // main.js (type="module")
 
 // ======================================================
-// 1. IMPORTAR FIREBASE Y CONFIG PERSONALIZADA
+// 1. IMPORTAR FIREBASE
 // ======================================================
 
 import { firebaseConfig } from "./firebase/firebaseConfig.js";
@@ -39,6 +39,7 @@ import {
   getDownloadURL,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
+
 // ======================================================
 // 2. INICIALIZAR FIREBASE
 // ======================================================
@@ -48,11 +49,11 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+
 // ======================================================
 // 3. VARIABLES GLOBALES
 // ======================================================
 
-// 🔐 SOLO ESTOS UID SON ADMIN
 const ADMIN_UIDs = ["zzmyV3WtENYwJ28OUlEaNjCpMA13"];
 
 let currentUser = null;
@@ -64,10 +65,13 @@ let currentCategories = [];
 
 let currentFilter = "all";
 let reservasCount = 0;
+let editingVaper = null;
 
-let editingVaper = null; // vaper que se está editando en el modal
 
-// Helpers
+// ======================================================
+// UTILIDADES
+// ======================================================
+
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
@@ -80,37 +84,30 @@ function showToast(msg) {
 }
 
 function slugify(str) {
-  return str
-    .toString()
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return str.toString().trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-// Subir imagen de sabor a Firebase Storage
 async function uploadFlavorImage(file, vaperId, flavorName) {
   const slug = slugify(flavorName || file.name);
   const ref = storageRef(storage, `sabores/${vaperId}/${slug}`);
   await uploadBytes(ref, file);
-  const url = await getDownloadURL(ref);
-  return url;
+  return await getDownloadURL(ref);
 }
+
 
 // ======================================================
 // 4. AUTENTICACIÓN
 // ======================================================
 
 async function loadUserData(uid) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-
   currentRole = "user";
+
+  const snap = await getDoc(doc(db, "users", uid));
   if (snap.exists()) currentUserData = snap.data();
 
-  // 🔐 solo UID en lista pueden ser admin
   if (ADMIN_UIDs.includes(uid)) currentRole = "admin";
 }
 
@@ -120,85 +117,74 @@ function updateAuthUI() {
   const adminLink = $(".nav-admin-link");
 
   if (!currentUser) {
-    if (label) label.textContent = "";
-    logout?.classList.add("hidden");
-    adminLink?.classList.add("hidden");
+    label.textContent = "";
+    logout.classList.add("hidden");
+    adminLink.classList.add("hidden");
     return;
   }
 
-  if (label) label.textContent = `Hola, ${currentUserData?.nombre || ""}`;
-  logout?.classList.remove("hidden");
+  label.textContent = `Hola, ${currentUserData?.nombre || ""}`;
+  logout.classList.remove("hidden");
 
-  if (currentRole === "admin") adminLink?.classList.remove("hidden");
+  if (currentRole === "admin") adminLink.classList.remove("hidden");
+  else adminLink.classList.add("hidden");
 }
 
 function setupAuthForms() {
-  // guardar sesión aunque cierres navegador
   setPersistence(auth, browserLocalPersistence).catch(() => {});
 
   const loginForm = $("#loginForm");
   const registerForm = $("#registerForm");
 
-  // LOGIN
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#loginError").textContent = "";
-
-    const email = $("#loginEmail").value.trim();
-    const pass = $("#loginPassword").value;
-
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      showToast("Sesión iniciada");
+      await signInWithEmailAndPassword(auth, $("#loginEmail").value.trim(), $("#loginPassword").value);
       window.location.href = "index.html";
     } catch {
       $("#loginError").textContent = "Credenciales incorrectas.";
     }
   });
 
-  // REGISTRO
   registerForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#registerError").textContent = "";
 
-    const nombre = $("#regName").value.trim();
-    const instagram = $("#regIg").value.trim();
-    const email = $("#regEmail").value.trim();
-    const pass = $("#regPassword").value;
-
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        $("#regEmail").value.trim(),
+        $("#regPassword").value
+      );
 
       await setDoc(doc(db, "users", cred.user.uid), {
-        nombre,
-        instagram,
-        correo: email,
+        nombre: $("#regName").value.trim(),
+        instagram: $("#regIg").value.trim(),
+        correo: $("#regEmail").value.trim(),
         creadoEn: new Date(),
       });
 
-      showToast("Cuenta creada");
       window.location.href = "login.html";
     } catch {
       $("#registerError").textContent = "Error al registrar.";
     }
   });
 
-  // LOGOUT
   $("#btnLogout")?.addEventListener("click", async () => {
     await signOut(auth);
     window.location.href = "index.html";
   });
 
-  // OBSERVER
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     currentUserData = null;
     currentRole = "user";
-
     if (user) await loadUserData(user.uid);
     updateAuthUI();
   });
 }
+
 
 // ======================================================
 // 5. CATEGORÍAS
@@ -210,7 +196,6 @@ function renderCategoryFilters() {
 
   box.innerHTML = "";
 
-  // ALL
   const btnAll = document.createElement("button");
   btnAll.className = "chip";
   btnAll.dataset.filter = "all";
@@ -223,7 +208,6 @@ function renderCategoryFilters() {
   };
   box.appendChild(btnAll);
 
-  // resto
   currentCategories.forEach((c) => {
     const b = document.createElement("button");
     b.className = "chip";
@@ -240,8 +224,10 @@ function renderCategoryFilters() {
     box.appendChild(b);
   });
 }
+// ======================================================
+// ADMIN: CATEGORÍAS (LISTA + EDICIÓN)
+// ======================================================
 
-// ADMIN: lista categorías con menú 3 puntos
 function renderAdminCategoryList() {
   const list = $("#adminCategoryList");
   const select = $("#vaperCategory");
@@ -277,10 +263,12 @@ function renderAdminCategoryList() {
       e.stopPropagation();
       const nuevo = prompt("Nuevo nombre de categoría:", c.nombre);
       if (!nuevo) return;
+
       await updateDoc(doc(db, "categorias", c.id), {
         nombre: nuevo,
         slug: slugify(nuevo),
       });
+
       showToast("Categoría actualizada");
       menu.classList.add("hidden");
     });
@@ -329,8 +317,9 @@ function setupCategories() {
   });
 }
 
+
 // ======================================================
-// 6. VAPERS (PUBLICO)
+// 6. VAPERS — LISTA PÚBLICA
 // ======================================================
 
 function renderProducts() {
@@ -349,7 +338,6 @@ function renderProducts() {
 
     const catObj = currentCategories.find((c) => c.id === p.categoriaId);
     const catName = catObj ? catObj.nombre : "—";
-
     const img = p.imagenUrl || "https://via.placeholder.com/300x200?text=Vaper";
 
     card.innerHTML = `
@@ -375,13 +363,13 @@ function renderProducts() {
     `;
 
     card.querySelector(".btn-reservar").onclick = () => openVaperModal(p);
-
     grid.appendChild(card);
   });
 }
 
+
 // ======================================================
-// 6b. VAPERS (ADMIN)
+// 6b. LISTA ADMIN — VAPERS (CON SABORES)
 // ======================================================
 
 function renderAdminProductList() {
@@ -394,10 +382,10 @@ function renderAdminProductList() {
     const catName =
       currentCategories.find((c) => c.id === p.categoriaId)?.nombre || "";
 
+    const sabores = Array.isArray(p.sabores) ? p.sabores : [];
+
     const item = document.createElement("div");
     item.className = "admin-vaper-block";
-
-    const sabores = Array.isArray(p.sabores) ? p.sabores : [];
 
     item.innerHTML = `
       <div class="vaper-header">
@@ -415,10 +403,10 @@ function renderAdminProductList() {
           sabores.length
             ? sabores
                 .map(
-                  (s) =>
-                    `<div class="flavor-row">
-                      <span>${s.nombre}</span>
-                    </div>`
+                  (s) => `
+                  <div class="flavor-row">
+                    <span>${s.nombre}</span>
+                  </div>`
                 )
                 .join("")
             : "<em>Sin sabores aún</em>"
@@ -430,33 +418,39 @@ function renderAdminProductList() {
           ${p.enStock ? "Marcar sin stock" : "Marcar en stock"}
         </button>
         <button class="btn-small edit-vaper-btn">Editar</button>
-        <button class="btn-small" style="background:#ff3b6a;color:white;">Eliminar</button>
+        <button class="btn-small delete-vaper-btn" style="background:#ff3b6a;color:white;">
+          Eliminar
+        </button>
       </div>
     `;
 
-    // toggle stock
+    // Toggle stock
     item.querySelector(".toggle-stock-btn").addEventListener("pointerdown", async (e) => {
       e.stopPropagation();
       await updateDoc(doc(db, "vapers", p.id), { enStock: !p.enStock });
       showToast("Stock actualizado");
     });
 
-    // eliminar
-    item.querySelector(".btn-small[style]").addEventListener("pointerdown", async (e) => {
+    // Eliminar
+    item.querySelector(".delete-vaper-btn").addEventListener("pointerdown", async (e) => {
       e.stopPropagation();
       await deleteDoc(doc(db, "vapers", p.id));
       showToast("Vaper eliminado");
     });
 
-    // editar → abrir modal
-    item.querySelector(".edit-vaper-btn").addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
+    // Editar modal
+    item.querySelector(".edit-vaper-btn").addEventListener("pointerdown", () => {
       openEditVaperModal(p);
     });
 
     box.appendChild(item);
   });
 }
+
+
+// ======================================================
+// 6c. CREAR NUEVO VAPER
+// ======================================================
 
 function setupVapers() {
   const q = query(collection(db, "vapers"), orderBy("nombre"));
@@ -480,7 +474,7 @@ function setupVapers() {
       nombre,
       categoriaId,
       imagenUrl: imagenUrl || "",
-      sabores: [], // se gestionan luego en el editor
+      sabores: [],
       enStock: true,
       creadoEn: new Date(),
     });
@@ -489,9 +483,8 @@ function setupVapers() {
     showToast("Vaper añadido");
   });
 }
-
 // ======================================================
-// 6c. EDITOR DE VAPER (MODAL ADMIN)
+// 6d. EDITOR DE VAPER (MODAL ADMIN)
 // ======================================================
 
 function addFlavorEditRow(container, flavor = { nombre: "", imagenUrl: "" }) {
@@ -500,17 +493,10 @@ function addFlavorEditRow(container, flavor = { nombre: "", imagenUrl: "" }) {
   row.dataset.currentUrl = flavor.imagenUrl || "";
 
   row.innerHTML = `
-    <input
-      type="text"
-      class="flavor-name"
-      placeholder="Nombre del sabor"
-      value="${flavor.nombre || ""}"
-    >
-    <input
-      type="file"
-      class="flavor-file"
-      accept="image/*"
-    >
+    <input type="text" class="flavor-name" placeholder="Nombre del sabor"
+      value="${flavor.nombre || ""}">
+    <input type="file" class="flavor-file" accept="image/*">
+
     ${
       flavor.imagenUrl
         ? `<button type="button" class="btn-small view-flavor">Ver</button>`
@@ -531,14 +517,12 @@ function addFlavorEditRow(container, flavor = { nombre: "", imagenUrl: "" }) {
 
 function openEditVaperModal(vaper) {
   editingVaper = vaper;
-  const modal = $("#editVaperModal");
-  if (!modal) return;
 
   $("#editVaperTitle").textContent = `Editar ${vaper.nombre}`;
   $("#editVaperName").value = vaper.nombre;
   $("#editVaperImg").value = vaper.imagenUrl || "";
 
-  // categorías en select
+  // categorías
   const selCat = $("#editVaperCategory");
   selCat.innerHTML = "";
   currentCategories.forEach((c) => {
@@ -549,40 +533,34 @@ function openEditVaperModal(vaper) {
     selCat.appendChild(op);
   });
 
-  const contFlavors = $("#editVaperFlavors");
-  contFlavors.innerHTML = "";
-  const sabores = Array.isArray(vaper.sabores) ? vaper.sabores : [];
+  // sabores
+  const cont = $("#editVaperFlavors");
+  cont.innerHTML = "";
 
+  const sabores = Array.isArray(vaper.sabores) ? vaper.sabores : [];
   if (sabores.length) {
-    sabores.forEach((s) => addFlavorEditRow(contFlavors, s));
+    sabores.forEach((s) => addFlavorEditRow(cont, s));
   } else {
-    // al menos una fila vacía
-    addFlavorEditRow(contFlavors);
+    addFlavorEditRow(cont); // uno vacío mínimo
   }
 
-  modal.classList.remove("hidden");
+  $("#editVaperModal").classList.remove("hidden");
 }
 
 function closeEditVaperModal() {
-  const modal = $("#editVaperModal");
-  if (!modal) return;
-  modal.classList.add("hidden");
+  $("#editVaperModal").classList.add("hidden");
   editingVaper = null;
 }
 
 function setupEditVaperModal() {
-  const modal = $("#editVaperModal");
-  if (!modal) return; // solo en admin
-
   $("#editVaperClose")?.addEventListener("click", closeEditVaperModal);
 
-  modal.addEventListener("click", (e) => {
+  $("#editVaperModal")?.addEventListener("click", (e) => {
     if (e.target.id === "editVaperModal") closeEditVaperModal();
   });
 
   $("#addFlavorBtn")?.addEventListener("click", () => {
-    const cont = $("#editVaperFlavors");
-    addFlavorEditRow(cont);
+    addFlavorEditRow($("#editVaperFlavors"));
   });
 
   $("#saveVaperChanges")?.addEventListener("click", async () => {
@@ -595,7 +573,7 @@ function setupEditVaperModal() {
     const imagenUrl = $("#editVaperImg").value.trim();
 
     const rows = Array.from(
-      $("#editVaperFlavors").querySelectorAll(".flavor-edit-row")
+      document.querySelectorAll(".flavor-edit-row")
     );
 
     const sabores = (
@@ -604,15 +582,11 @@ function setupEditVaperModal() {
           const name = row.querySelector(".flavor-name").value.trim();
           if (!name) return null;
 
-          const fileInput = row.querySelector(".flavor-file");
+          const file = row.querySelector(".flavor-file").files[0];
           let url = row.dataset.currentUrl || "";
 
-          if (fileInput.files[0]) {
-            url = await uploadFlavorImage(
-              fileInput.files[0],
-              editingVaper.id,
-              name
-            );
+          if (file) {
+            url = await uploadFlavorImage(file, editingVaper.id, name);
           }
 
           return { nombre: name, imagenUrl: url };
@@ -632,6 +606,7 @@ function setupEditVaperModal() {
   });
 }
 
+
 // ======================================================
 // 7. MODAL DE RESERVA (PÚBLICO)
 // ======================================================
@@ -640,6 +615,7 @@ let modalVaper = null;
 
 function openVaperModal(vaper) {
   modalVaper = vaper;
+
   $("#modalVaperImage").src =
     vaper.imagenUrl || "https://via.placeholder.com/300x200?text=Vaper";
   $("#modalVaperName").textContent = vaper.nombre;
@@ -652,8 +628,7 @@ function openVaperModal(vaper) {
 
   const sabores = Array.isArray(vaper.sabores) ? vaper.sabores : [];
   sabores.forEach((s) => {
-    const nombre = typeof s === "string" ? s : s.nombre;
-    if (!nombre) return;
+    const nombre = s.nombre || s;
     const op = document.createElement("option");
     op.value = nombre;
     op.textContent = nombre;
@@ -665,7 +640,6 @@ function openVaperModal(vaper) {
 
 function closeVaperModal() {
   $("#vaperModal").classList.add("hidden");
-  modalVaper = null;
 }
 
 function setupModalReserva() {
@@ -675,7 +649,7 @@ function setupModalReserva() {
     if (e.target.id === "vaperModal") closeVaperModal();
   });
 
-  $("#btnReservar")?.addEventListener("click", () => {
+  $("#btnReservar")?.addEventListener("click", async () => {
     if (!currentUser) {
       $("#modalError").textContent = "Debes iniciar sesión.";
       return;
@@ -688,8 +662,7 @@ function setupModalReserva() {
     }
 
     reservasCount++;
-    const cartEl = $(".cart-count");
-    if (cartEl) cartEl.textContent = reservasCount;
+    $(".cart-count").textContent = reservasCount;
 
     fetch("/api/sendEmail", {
       method: "POST",
@@ -707,8 +680,9 @@ function setupModalReserva() {
   });
 }
 
+
 // ======================================================
-// 8. INICIALIZACIÓN GLOBAL
+// 8. INICIALIZACIÓN
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -718,6 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupModalReserva();
   setupEditVaperModal();
 });
+
 
 // ======================================================
 // 9. MENÚ MÓVIL
