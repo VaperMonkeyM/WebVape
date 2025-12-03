@@ -140,7 +140,7 @@ img {
 /* ----------------- CART ---------------- */
 
 .cart-btn {
-  background: black;
+  background: transparent;
   border: 1px solid var(--neon-blue);
   padding: 6px 14px;
   border-radius: 8px;
@@ -522,26 +522,13 @@ img {
   align-items: center;
 }
 
-.admin-badge-stock {
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: 0.2s;
-}
-
 .admin-badge-stock.ok {
-  color: #00ff8f;
+  color: var(--neon-green);
 }
 
 .admin-badge-stock.off {
-  color: #ff4d4d;
+  color: #ff3b6a;
 }
-
-.admin-badge-stock:hover {
-  opacity: 0.7;
-}
-
 
 .menu-dots {
   position: relative;
@@ -550,7 +537,7 @@ img {
 .menu-dots-btn {
   background: none;
   border: none;
-  color: var(--text);
+  color: red;
   cursor: pointer;
 }
 

@@ -479,7 +479,7 @@ fetch("/api/sendEmail", {
       "Error al conectar con el servidor.";
   });
 
-    showToast("Abriendo WhatsApp...");
+    showToast("Enviando Reserva...");
     closeVaperModal();
   });
 }
