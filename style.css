@@ -137,27 +137,6 @@ img {
 
 /* CART */
 
-.cart-btn {
-  background: transparent;
-  border: 1px solid var(--neon-blue);
-  padding: 6px 14px;
-  border-radius: 8px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  color: var(--neon-blue);
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.cart-btn:hover {
-  background: rgba(0, 217, 255, 0.1);
-}
-
-.cart-count {
-  color: white;
-  font-weight: 700;
-}
 
 /* MOBILE MENU */
 
