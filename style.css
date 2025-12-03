@@ -159,7 +159,7 @@ img {
   font-weight: 700;
 }
 
-/* MOBILE MENU BUTTON */
+/* MOBILE MENU */
 
 .menu-toggle {
   width: 32px;
@@ -176,43 +176,6 @@ img {
   height: 4px;
   background: white;
   border-radius: 4px;
-}
-
-/* ====================================================
-   MOBILE MENU OVERLAY
-==================================================== */
-
-.mobile-menu {
-  position: fixed;
-  top: 70px;
-  right: 12px;
-  background: #11111a;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  width: 180px;
-  padding: 15px 0;
-  z-index: 999;
-  box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
-  animation: slideDown 0.25s ease;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.mobile-link {
-  padding: 12px 20px;
-  color: var(--text);
-  text-decoration: none;
-  font-size: 15px;
-}
-
-.mobile-link:hover {
-  background: rgba(0, 217, 255, 0.1);
-  color: var(--neon-blue);
 }
 
 /* ====================================================
@@ -258,17 +221,26 @@ img {
    BUTTONS
 ==================================================== */
 
-.btn-primary {
+.btn-primary,
+.btn-ghost,
+.btn-tertiary,
+.btn-small {
   border-radius: 10px;
   padding: 12px 22px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   display: inline-block;
-  background: var(--neon-purple);
-  color: black;
-  text-shadow: 0 0 5px var(--neon-purple);
+  text-align: center;
   transition: 0.2s;
+}
+
+/* Primary */
+.btn-primary {
+  color: black;
+  background: var(--neon-purple);
+  text-shadow: 0 0 5px var(--neon-purple);
 }
 
 .btn-primary:hover {
@@ -306,6 +278,8 @@ img {
   border-radius: 8px;
 }
 
+/* BADGES */
+
 .in-stock {
   color: var(--neon-green);
 }
@@ -337,70 +311,13 @@ img {
   max-width: 650px;
   padding: 25px;
   position: relative;
+  animation: modalFade 0.3s ease;
 }
 
 .modal-body {
   display: flex;
   gap: 30px;
   flex-wrap: wrap;
-}
-
-/* ====================================================
-   FORMS
-==================================================== */
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 2px solid var(--border);
-  background: #0f0f17;
-  color: var(--text);
-  font-size: 15px;
-  outline: none;
-  transition: 0.2s;
-}
-
-.form-group input:focus {
-  border-color: var(--neon-purple);
-  box-shadow: 0 0 8px rgba(191, 0, 255, 0.5);
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  margin: auto;
-  background: var(--card);
-  padding: 25px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-}
-
-/* ====================================================
-   CATEGORY CHIPS
-==================================================== */
-
-.chip {
-  padding: 6px 14px;
-  background: #15151f;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-soft);
-  transition: 0.25s;
-}
-
-.chip:hover {
-  border-color: var(--neon-blue);
-  color: var(--neon-blue);
-}
-
-.chip-active {
-  border-color: var(--neon-green);
-  color: var(--neon-green);
-  box-shadow: 0 0 10px rgba(57,255,20,0.4);
 }
 
 /* ====================================================
@@ -426,14 +343,8 @@ img {
 }
 
 /* ====================================================
-   FOOTER — PERFECTO
+   FOOTER
 ==================================================== */
-
-.footer {
-  padding: 60px 0 25px;
-  background: #0c0c14;
-  margin-top: 50px;
-}
 
 .footer-inner {
   display: flex;
@@ -443,56 +354,26 @@ img {
   flex-wrap: wrap;
   gap: 40px;
 }
+.footer {
+  padding: 60px 0 25px;
+  background: #0c0c14;
+  margin-top: 50px;
+}
 
-.footer-col {
+.footer-column {
   min-width: 200px;
 }
 
-.footer-text {
-  margin-top: 12px;
-  color: var(--text-soft);
-  max-width: 260px;
-}
-
-.footer-title {
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: var(--neon-purple);
-}
-
-.footer-links {
-  list-style: none;
-}
-
-.footer-links li {
-  margin-bottom: 8px;
-}
-
-.footer-links a {
-  color: var(--text-soft);
-  text-decoration: none;
-  transition: 0.2s;
-}
-
-.footer-links a:hover {
-  color: var(--neon-blue);
-}
-
-.footer-bottom {
-  margin-top: 30px;
-  text-align: center;
-  color: var(--text-soft);
-  font-size: 14px;
-}
 
 /* ====================================================
-   RESPONSIVE
+   RESPONSIVE MÓVIL
 ==================================================== */
 
 @media (max-width: 768px) {
 
   body {
     padding: 0 12px;
+    overflow-x: hidden;
   }
 
   .nav-list {
@@ -559,12 +440,90 @@ img {
     text-align: center;
     padding: 40px 20px;
   }
+}
+/* ============================================
+   MOBILE MENU OVERLAY
+============================================ */
 
-  .footer-inner {
-    text-align: center;
-  }
+.mobile-menu {
+  position: fixed;
+  top: 70px;
+  right: 12px;
+  background: #11111a;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  padding: 15px 0;
+  z-index: 999;
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+  animation: slideDown 0.25s ease;
+}
 
-  .footer-col {
-    width: 100%;
-  }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-link {
+  padding: 12px 20px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.mobile-link:hover {
+  background: rgba(0, 217, 255, 0.1);
+  color: var(--neon-blue);
+}
+/* FORM FIX */
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: #0f0f17;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 8px rgba(191, 0, 255, 0.5);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  background: var(--card);
+  padding: 25px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+/* CATEGORÍA CHIPS */
+.chip {
+  padding: 6px 14px;
+  background: #15151f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-soft);
+  transition: 0.25s;
+}
+
+.chip:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.chip-active {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+  box-shadow: 0 0 10px rgba(57,255,20,0.4);
 }
