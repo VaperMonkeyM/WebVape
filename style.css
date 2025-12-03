@@ -140,7 +140,7 @@ img {
 /* ----------------- CART ---------------- */
 
 .cart-btn {
-  background: transparent;
+  background: black;
   border: 1px solid var(--neon-blue);
   padding: 6px 14px;
   border-radius: 8px;
