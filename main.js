@@ -745,12 +745,18 @@ function openVaperModal(vaper) {
   // helper to update flavor image based on selected option
   function updateFlavorImage() {
     const chosen = sel.options[sel.selectedIndex];
+    const vaperImg = $("#modalVaperImage");
+    
     if (chosen && chosen.dataset.img) {
+      // Flavor has image: hide vaper image, show flavor image
       flavorImgEl.src = chosen.dataset.img;
       flavorImgEl.classList.remove('hidden');
+      vaperImg.classList.add('hidden');
     } else {
+      // No flavor image: hide flavor image, show vaper image
       flavorImgEl.src = '';
       flavorImgEl.classList.add('hidden');
+      vaperImg.classList.remove('hidden');
     }
   }
 

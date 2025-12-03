@@ -631,11 +631,20 @@ a {
   object-fit: contain;
 }
 
+#modalVaperImage {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+}
+
+#modalVaperImage.hidden {
+  display: none;
+}
+
 .modal-flavor-image {
-  max-width: 80%;
-  max-height: 120px;
-  object-fit: cover;
-  margin-top: 12px;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,0.06);
 }
