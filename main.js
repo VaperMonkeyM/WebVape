@@ -412,41 +412,92 @@ function setupVapers() {
 // 7. MODAL + WHATSAPP
 // ======================================================
 
-import nodemailer from "nodemailer";
+let modalVaper = null;
 
-export default async function handler(req, res) {
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Método no permitido" });
+function openVaperModal(vaper) {
+  modalVaper = vaper;
+  $("#modalVaperImage").src = vaper.imagenUrl;
+  $("#modalVaperName").textContent = vaper.nombre;
 
-  const { modelo, sabor, nombre, instagram } = req.body;
+  const cat = currentCategories.find((c) => c.id === vaper.categoriaId);
+  $("#modalVaperCategory").textContent = cat ? cat.nombre : "";
 
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS, // contraseña de APP
-      },
-    });
+  const sel = $("#modalFlavorSelect");
+  sel.innerHTML = "";
+  vaper.sabores.forEach((s) => {
+    const op = document.createElement("option");
+    op.value = s;
+    op.textContent = s;
+    sel.appendChild(op);
+  });
 
-    const info = await transporter.sendMail({
-      from: `"Vaper Monkey" <${process.env.GMAIL_USER}>`,
-      to: process.env.ADMIN_EMAIL,
-      subject: "Nueva reserva de vaper",
-      text: `
-Nueva reserva:
-Modelo: ${modelo}
+  $("#vaperModal").classList.remove("hidden");
+}
+
+function closeVaperModal() {
+  $("#vaperModal").classList.add("hidden");
+  modalVaper = null;
+}
+
+function setupModal() {
+  $("#modalCloseBtn")?.addEventListener("click", closeVaperModal);
+
+  $("#vaperModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "vaperModal") closeVaperModal();
+  });
+
+  $("#btnReservar")?.addEventListener("click", () => {
+    if (!currentUser) {
+      $("#modalError").textContent = "Debes iniciar sesión.";
+      return;
+    }
+
+    const sabor = $("#modalFlavorSelect").value;
+    if (!sabor) {
+      $("#modalError").textContent = "Elige un sabor.";
+      return;
+    }
+
+    const text = `
+Reserva Vaper:
+Modelo: ${modalVaper.nombre}
 Sabor: ${sabor}
-Nombre: ${nombre}
-Instagram: ${instagram}
-      `,
-    });
+Nombre: ${currentUserData.nombre}
+Instagram: ${currentUserData.instagram}
+    `.trim();
 
-    return res.status(200).json({ ok: true, info });
+    reservasCount++;
+    $(".cart-count").textContent = reservasCount;
 
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message });
-  }
+    // ENVIAR RESERVA AUTOMÁTICA POR GMAIL
+fetch("/api/sendEmail", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    modelo: modalVaper.nombre,
+    sabor: sabor,
+    nombre: currentUserData.nombre,
+    instagram: currentUserData.instagram,
+  }),
+})
+  .then((res) => res.json())
+  .then((data) => {
+    if (data.ok) {
+      showToast("Reserva enviada correctamente");
+      closeVaperModal();
+    } else {
+      $("#modalError").textContent =
+        "Error al enviar la reserva. Inténtalo más tarde.";
+    }
+  })
+  .catch(() => {
+    $("#modalError").textContent =
+      "Error al conectar con el servidor.";
+  });
+
+    showToast("Abriendo WhatsApp...");
+    closeVaperModal();
+  });
 }
 
 // ======================================================
