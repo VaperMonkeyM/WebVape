@@ -261,8 +261,8 @@ img {
 
 /* Tertiary */
 .btn-tertiary {
-  border: 1px solid var(--neon-green);
-  color: var(--neon-green);
+  border: 1px solid red;
+  color: red;
 }
 
 .btn-tertiary:hover {
