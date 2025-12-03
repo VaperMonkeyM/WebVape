@@ -170,6 +170,7 @@ function updateAuthUI() {
   const mobileAdminLinks = $$(".mobile-admin-link");
   const authLinks = $$(".nav-auth-link");
   const mobileAuthLinks = $$(".mobile-auth-link");
+  const authActionBtns = $$(".auth-action-btn");
 
   if (!currentUser) {
     if (label) label.textContent = "";
@@ -178,6 +179,7 @@ function updateAuthUI() {
     mobileAdminLinks.forEach(link => link.classList.add("hidden"));
     authLinks.forEach(link => link.classList.remove("hidden"));
     mobileAuthLinks.forEach(link => link.classList.remove("hidden"));
+    authActionBtns.forEach(btn => btn.classList.remove("hidden"));
     return;
   }
 
@@ -206,6 +208,9 @@ function updateAuthUI() {
   // Ocultar links de auth si está logueado
   authLinks.forEach(link => link.classList.add("hidden"));
   mobileAuthLinks.forEach(link => link.classList.add("hidden"));
+  
+  // Ocultar botones de acción de auth (Crear cuenta)
+  authActionBtns.forEach(btn => btn.classList.add("hidden"));
 }
 
 function setupAuthForms() {
