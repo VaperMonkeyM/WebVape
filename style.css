@@ -261,12 +261,12 @@ img {
 
 /* Tertiary */
 .btn-tertiary {
-  border: 1px solid red;
-  color: red;
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue);
 }
 
 .btn-tertiary:hover {
-  background: rgba(57, 255, 20, 0.1);
+  background: rgba(36, 20, 255, 0.1);
 }
 
 .btn-small {
