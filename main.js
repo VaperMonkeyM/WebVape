@@ -52,6 +52,8 @@ let currentCategories = [];
 let currentFilter = "all";
 let reservasCount = 0;
 
+const WHATSAPP_NUMBER = "34";
+
 // Helpers
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -110,7 +112,7 @@ function setupAuthForms() {
   const loginForm = $("#loginForm");
   const registerForm = $("#registerForm");
 
-  // Login
+  // Login form
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#loginError").textContent = "";
@@ -139,7 +141,6 @@ function setupAuthForms() {
 
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
-
       await setDoc(doc(db, "users", cred.user.uid), {
         nombre,
         instagram,
@@ -150,7 +151,7 @@ function setupAuthForms() {
 
       showToast("Cuenta creada");
       window.location.href = "login.html";
-    } catch {
+    } catch (err) {
       $("#registerError").textContent = "Error al registrar.";
     }
   });
@@ -168,6 +169,7 @@ function setupAuthForms() {
     currentRole = "user";
 
     if (user) await loadUserData(user.uid);
+
     updateAuthUI();
   });
 }
@@ -182,34 +184,35 @@ function renderCategoryFilters() {
 
   box.innerHTML = "";
 
-  // ALL
+  // All
   const btnAll = document.createElement("button");
   btnAll.className = "chip";
   btnAll.dataset.filter = "all";
   btnAll.textContent = "Todos";
   if (currentFilter === "all") btnAll.classList.add("chip-active");
+  box.appendChild(btnAll);
+
   btnAll.onclick = () => {
     currentFilter = "all";
     renderProducts();
     renderCategoryFilters();
   };
-  box.appendChild(btnAll);
 
-  // Otras categorías
+  // Each category
   currentCategories.forEach((c) => {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.textContent = c.nombre;
-    btn.dataset.filter = c.id;
-    if (currentFilter === c.id) btn.classList.add("chip-active");
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = c.nombre;
+    b.dataset.filter = c.id;
+    if (currentFilter === c.id) b.classList.add("chip-active");
 
-    btn.onclick = () => {
+    b.onclick = () => {
       currentFilter = c.id;
       renderProducts();
       renderCategoryFilters();
     };
 
-    box.appendChild(btn);
+    box.appendChild(b);
   });
 }
 
@@ -222,11 +225,11 @@ function renderAdminCategoryList() {
   select.innerHTML = "";
 
   currentCategories.forEach((c) => {
-    const li = document.createElement("li");
+    let li = document.createElement("li");
     li.textContent = c.nombre;
     list.appendChild(li);
 
-    const opt = document.createElement("option");
+    let opt = document.createElement("option");
     opt.value = c.id;
     opt.textContent = c.nombre;
     select.appendChild(opt);
@@ -234,17 +237,18 @@ function renderAdminCategoryList() {
 }
 
 function setupCategories() {
+  // Listener
   const q = query(collection(db, "categorias"), orderBy("nombre"));
-
   onSnapshot(q, (snap) => {
     currentCategories = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderCategoryFilters();
     renderAdminCategoryList();
   });
 
-  $("#categoryForm")?.addEventListener("submit", async (e) => {
+  // Form
+  const form = $("#categoryForm");
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const name = $("#catName").value.trim();
     if (!name) return;
 
@@ -277,7 +281,7 @@ function renderProducts() {
     card.className = "product-card";
 
     const catObj = currentCategories.find((c) => c.id === p.categoriaId);
-    const catName = catObj ? c.nombre : "—";
+    const catName = catObj ? catObj.nombre : "—";
 
     card.innerHTML = `
       <div class="product-image">
@@ -307,8 +311,6 @@ function renderProducts() {
   });
 }
 
-// ⭐⭐⭐ FIX COMPLETO PARA MÓVIL — SECCIÓN ADMIN ⭐⭐⭐
-
 function renderAdminProductList() {
   const box = $("#adminVaperList");
   if (!box) return;
@@ -333,43 +335,45 @@ function renderAdminProductList() {
       </span>
     `;
 
-    // ************** FIX MÓVIL **************
+    // -- CLICK EN "EN STOCK" / "SIN STOCK"
     const badge = item.querySelector(".stock-toggle");
 
-    badge.addEventListener("pointerdown", async (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-
-      const nuevoValor = !p.enStock;
+    badge.onclick = async () => {
+      const nuevoValor = !p.enStock; // lo contrario
       const ref = doc(db, "vapers", p.id);
+
       await updateDoc(ref, { enStock: nuevoValor });
 
       showToast(
         nuevoValor
-          ? "El vaper está ahora EN STOCK"
-          : "El vaper está ahora SIN STOCK"
+          ? "El vaper ahora está EN STOCK"
+          : "El vaper ahora está SIN STOCK"
       );
-    });
+    };
 
     box.appendChild(item);
   });
 }
 
-function setupVapers() {
-  const q = query(collection(db, "vapers"), orderBy("nombre"));
 
+
+function setupVapers() {
+  // Listener Firestore
+  const q = query(collection(db, "vapers"), orderBy("nombre"));
   onSnapshot(q, (snap) => {
     currentProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderProducts();
     renderAdminProductList();
   });
 
-  $("#vaperForm")?.addEventListener("submit", async (e) => {
+  // ADD VAPER
+  const form = $("#vaperForm");
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const nombre = $("#vaperName").value.trim();
     const categoriaId = $("#vaperCategory").value;
-    const sabores = $("#vaperFlavors").value.split(",").map((s) => s.trim());
+    const sabores = $("#vaperFlavors").value.split(",").map(s => s.trim());
     const imagenUrl = $("#vaperImage").value.trim();
 
     if (!nombre || !categoriaId || !imagenUrl) return;
@@ -383,13 +387,13 @@ function setupVapers() {
       creadoEn: new Date(),
     });
 
-    e.target.reset();
+    form.reset();
     showToast("Vaper añadido");
   });
 }
 
 // ======================================================
-// 7. MODAL + EMAIL
+// 7. MODAL + WHATSAPP
 // ======================================================
 
 let modalVaper = null;
@@ -438,41 +442,50 @@ function setupModal() {
       return;
     }
 
+    const text = `
+Reserva Vaper:
+Modelo: ${modalVaper.nombre}
+Sabor: ${sabor}
+Nombre: ${currentUserData.nombre}
+Instagram: ${currentUserData.instagram}
+    `.trim();
+
     reservasCount++;
     $(".cart-count").textContent = reservasCount;
 
-    // ENVIAR A VERCELO (GMAIL BOT)
-    fetch("/api/sendEmail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        modelo: modalVaper.nombre,
-        sabor,
-        nombre: currentUserData.nombre,
-        instagram: currentUserData.instagram,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          showToast("Reserva enviada correctamente");
-          closeVaperModal();
-        } else {
-          $("#modalError").textContent =
-            "Error al enviar la reserva. Inténtalo más tarde.";
-        }
-      })
-      .catch(() => {
-        $("#modalError").textContent =
-          "Error al conectar con el servidor.";
-      });
+    // ENVIAR RESERVA AUTOMÁTICA POR GMAIL
+fetch("/api/sendEmail", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    modelo: modalVaper.nombre,
+    sabor: sabor,
+    nombre: currentUserData.nombre,
+    instagram: currentUserData.instagram,
+  }),
+})
+  .then((res) => res.json())
+  .then((data) => {
+    if (data.ok) {
+      showToast("Reserva enviada correctamente");
+      closeVaperModal();
+    } else {
+      $("#modalError").textContent =
+        "Error al enviar la reserva. Inténtalo más tarde.";
+    }
+  })
+  .catch(() => {
+    $("#modalError").textContent =
+      "Error al conectar con el servidor.";
+  });
 
-    showToast("Enviando reserva...");
+    showToast("Enviando Reserva...");
+    closeVaperModal();
   });
 }
 
 // ======================================================
-// 8. INICIALIZACIÓN
+// 8. INICIALIZACIÓN GLOBAL
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -481,27 +494,24 @@ document.addEventListener("DOMContentLoaded", () => {
   setupVapers();
   setupModal();
 });
-
-// ======================================================
-// MENU MÓVIL
-// ======================================================
+// ==================
+//  MOBILE MENU
+// ==================
 
 const menuToggle = document.querySelector(".menu-toggle");
 const mobileMenu = document.getElementById("mobileMenu");
 
 if (menuToggle) {
-  menuToggle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
+  menuToggle.addEventListener("click", () => {
     mobileMenu.classList.toggle("hidden");
   });
 }
 
-document.addEventListener("pointerdown", (e) => {
-  if (
-    !mobileMenu.classList.contains("hidden") &&
-    !mobileMenu.contains(e.target) &&
-    !menuToggle.contains(e.target)
-  ) {
-    mobileMenu.classList.add("hidden");
+// Cerrar si pulsa fuera
+document.addEventListener("click", (e) => {
+  if (!mobileMenu.classList.contains("hidden")) {
+    if (!mobileMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+      mobileMenu.classList.add("hidden");
+    }
   }
 });
