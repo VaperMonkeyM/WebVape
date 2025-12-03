@@ -53,7 +53,9 @@ const storage = getStorage(app);
 // ======================================================
 // 3. VARIABLES GLOBALES
 // ======================================================
-const ADMIN_EMAIL = "cainlopezburgos@gmail.com"; // <-- PON AQUÍ TU CORREO ADMIN REAL
+
+// ⛔️ SOLO ESTE EMAIL ES ADMIN
+const ADMIN_EMAIL = "cainlopezburgos@gmail.com";
 
 let currentUser = null;
 let currentUserData = null;
@@ -83,8 +85,12 @@ function showToast(msg) {
 }
 
 function slugify(str) {
-  return str.toString().trim().toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  return str
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -101,29 +107,57 @@ async function uploadFlavorImage(file, vaperId, flavorName) {
 // 4. AUTENTICACIÓN
 // ======================================================
 
-async function loadUserData(uid) {
+async function loadUserData(user) {
+  // user viene de Firebase Auth
+  const uid = user.uid;
+  const email = (user.email || "").toLowerCase();
+
+  // Por defecto siempre "user"
+  currentRole = "user";
+
   const ref = doc(db, "users", uid);
   const snap = await getDoc(ref);
-
-  currentRole = "user"; // siempre por defecto
   currentUserData = snap.exists() ? snap.data() : {};
 
-  // admin SOLO por correo
-  if (currentUser?.email === ADMIN_EMAIL) {
+  // Por si el doc no tiene nombre, usamos email de auth
+  if (!currentUserData.nombre) {
+    currentUserData.nombre = user.email || "";
+  }
+
+  // ✅ SOLO ESTE CORREO ES ADMIN
+  if (email === ADMIN_EMAIL.toLowerCase()) {
     currentRole = "admin";
   }
+
+  console.log("[AUTH] User:", email, "Rol:", currentRole);
 }
 
 function updateAuthUI() {
+  const label = $("#userNameLabel");
+  const logout = $("#btnLogout");
   const adminLink = $(".nav-admin-link");
 
-  if (currentRole === "admin") {
-    adminLink?.classList.remove("hidden");
-  } else {
-    adminLink?.classList.add("hidden");
+  if (!currentUser) {
+    if (label) label.textContent = "";
+    if (logout) logout.classList.add("hidden");
+    if (adminLink) adminLink.classList.add("hidden");
+    return;
+  }
+
+  if (label) {
+    label.textContent = `Hola, ${currentUserData?.nombre || currentUser.email || ""}`;
+  }
+
+  if (logout) logout.classList.remove("hidden");
+
+  if (adminLink) {
+    if (currentRole === "admin") {
+      adminLink.classList.remove("hidden");
+    } else {
+      adminLink.classList.add("hidden");
+    }
   }
 }
-
 
 function setupAuthForms() {
   setPersistence(auth, browserLocalPersistence).catch(() => {});
@@ -131,32 +165,37 @@ function setupAuthForms() {
   const loginForm = $("#loginForm");
   const registerForm = $("#registerForm");
 
+  // LOGIN
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#loginError").textContent = "";
     try {
-      await signInWithEmailAndPassword(auth, $("#loginEmail").value.trim(), $("#loginPassword").value);
+      await signInWithEmailAndPassword(
+        auth,
+        $("#loginEmail").value.trim(),
+        $("#loginPassword").value
+      );
       window.location.href = "index.html";
     } catch {
       $("#loginError").textContent = "Credenciales incorrectas.";
     }
   });
 
+  // REGISTRO
   registerForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#registerError").textContent = "";
 
     try {
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        $("#regEmail").value.trim(),
-        $("#regPassword").value
-      );
+      const email = $("#regEmail").value.trim();
+      const pass = $("#regPassword").value;
+
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
 
       await setDoc(doc(db, "users", cred.user.uid), {
         nombre: $("#regName").value.trim(),
         instagram: $("#regIg").value.trim(),
-        correo: $("#regEmail").value.trim(),
+        correo: email,
         creadoEn: new Date(),
       });
 
@@ -166,16 +205,22 @@ function setupAuthForms() {
     }
   });
 
+  // LOGOUT
   $("#btnLogout")?.addEventListener("click", async () => {
     await signOut(auth);
     window.location.href = "index.html";
   });
 
+  // OBSERVER DE ESTADO DE SESIÓN
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     currentUserData = null;
     currentRole = "user";
-    if (user) await loadUserData(user.uid);
+
+    if (user) {
+      await loadUserData(user);
+    }
+
     updateAuthUI();
   });
 }
@@ -219,9 +264,8 @@ function renderCategoryFilters() {
     box.appendChild(b);
   });
 }
-// ======================================================
+
 // ADMIN: CATEGORÍAS (LISTA + EDICIÓN)
-// ======================================================
 
 function renderAdminCategoryList() {
   const list = $("#adminCategoryList");
@@ -419,21 +463,18 @@ function renderAdminProductList() {
       </div>
     `;
 
-    // Toggle stock
     item.querySelector(".toggle-stock-btn").addEventListener("pointerdown", async (e) => {
       e.stopPropagation();
       await updateDoc(doc(db, "vapers", p.id), { enStock: !p.enStock });
       showToast("Stock actualizado");
     });
 
-    // Eliminar
     item.querySelector(".delete-vaper-btn").addEventListener("pointerdown", async (e) => {
       e.stopPropagation();
       await deleteDoc(doc(db, "vapers", p.id));
       showToast("Vaper eliminado");
     });
 
-    // Editar modal
     item.querySelector(".edit-vaper-btn").addEventListener("pointerdown", () => {
       openEditVaperModal(p);
     });
@@ -478,6 +519,8 @@ function setupVapers() {
     showToast("Vaper añadido");
   });
 }
+
+
 // ======================================================
 // 6d. EDITOR DE VAPER (MODAL ADMIN)
 // ======================================================
@@ -491,7 +534,6 @@ function addFlavorEditRow(container, flavor = { nombre: "", imagenUrl: "" }) {
     <input type="text" class="flavor-name" placeholder="Nombre del sabor"
       value="${flavor.nombre || ""}">
     <input type="file" class="flavor-file" accept="image/*">
-
     ${
       flavor.imagenUrl
         ? `<button type="button" class="btn-small view-flavor">Ver</button>`
@@ -517,7 +559,6 @@ function openEditVaperModal(vaper) {
   $("#editVaperName").value = vaper.nombre;
   $("#editVaperImg").value = vaper.imagenUrl || "";
 
-  // categorías
   const selCat = $("#editVaperCategory");
   selCat.innerHTML = "";
   currentCategories.forEach((c) => {
@@ -528,7 +569,6 @@ function openEditVaperModal(vaper) {
     selCat.appendChild(op);
   });
 
-  // sabores
   const cont = $("#editVaperFlavors");
   cont.innerHTML = "";
 
@@ -536,7 +576,7 @@ function openEditVaperModal(vaper) {
   if (sabores.length) {
     sabores.forEach((s) => addFlavorEditRow(cont, s));
   } else {
-    addFlavorEditRow(cont); // uno vacío mínimo
+    addFlavorEditRow(cont);
   }
 
   $("#editVaperModal").classList.remove("hidden");
@@ -567,9 +607,7 @@ function setupEditVaperModal() {
     const categoriaId = $("#editVaperCategory").value;
     const imagenUrl = $("#editVaperImg").value.trim();
 
-    const rows = Array.from(
-      document.querySelectorAll(".flavor-edit-row")
-    );
+    const rows = Array.from(document.querySelectorAll(".flavor-edit-row"));
 
     const sabores = (
       await Promise.all(
@@ -657,7 +695,8 @@ function setupModalReserva() {
     }
 
     reservasCount++;
-    $(".cart-count").textContent = reservasCount;
+    const cartEl = $(".cart-count");
+    if (cartEl) cartEl.textContent = reservasCount;
 
     fetch("/api/sendEmail", {
       method: "POST",
