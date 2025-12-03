@@ -330,30 +330,56 @@ function renderAdminProductList() {
         <span class="admin-vaper-meta">${catName}</span>
       </div>
 
-      <span class="admin-badge-stock ${p.enStock ? "ok" : "off"} stock-toggle">
-        ${p.enStock ? "En stock" : "Sin stock"}
-      </span>
+      <div class="admin-actions">
+        <span class="stock-toggle ${p.enStock ? "ok" : "off"}">
+          ${p.enStock ? "En stock" : "Sin stock"}
+        </span>
+
+        <button class="menu-btn">⋮</button>
+
+        <div class="admin-menu hidden">
+          <div class="admin-menu-item edit-vaper">✏️ Editar</div>
+          <div class="admin-menu-item toggle-stock">${p.enStock ? "❌ Quitar stock" : "✅ Poner stock"}</div>
+          <div class="admin-menu-item delete-vaper">🗑 Eliminar</div>
+        </div>
+      </div>
     `;
 
-    // -- CLICK EN "EN STOCK" / "SIN STOCK"
-    const badge = item.querySelector(".stock-toggle");
+    const menuBtn = item.querySelector(".menu-btn");
+    const menu = item.querySelector(".admin-menu");
 
-    badge.onclick = async () => {
-      const nuevoValor = !p.enStock; // lo contrario
-      const ref = doc(db, "vapers", p.id);
+    menuBtn.onclick = () => {
+      menu.classList.toggle("hidden");
+    };
 
-      await updateDoc(ref, { enStock: nuevoValor });
+    document.addEventListener("click", (e) => {
+      if (!item.contains(e.target)) menu.classList.add("hidden");
+    });
 
-      showToast(
-        nuevoValor
-          ? "El vaper ahora está EN STOCK"
-          : "El vaper ahora está SIN STOCK"
-      );
+    // Cambiar stock
+    item.querySelector(".toggle-stock").onclick = async () => {
+      await updateDoc(doc(db, "vapers", p.id), {
+        enStock: !p.enStock
+      });
+      showToast("Stock actualizado");
+    };
+
+    // Eliminar vaper
+    item.querySelector(".delete-vaper").onclick = async () => {
+      if (!confirm("¿Seguro que quieres borrar este vaper?")) return;
+      await deleteDoc(doc(db, "vapers", p.id));
+      showToast("Vaper eliminado");
+    };
+
+    // Editar vaper
+    item.querySelector(".edit-vaper").onclick = () => {
+      openEditVaperModal(p);
     };
 
     box.appendChild(item);
   });
 }
+
 
 
 
