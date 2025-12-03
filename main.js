@@ -455,6 +455,15 @@ function renderProducts() {
     card.querySelector(".btn-reservar").onclick = () => openVaperModal(p);
     grid.appendChild(card);
   });
+
+  // Si el modal está abierto, verificar si el producto aún existe
+  if (modalVaper && !$("#vaperModal").classList.contains("hidden")) {
+    const vaperAunExiste = currentProducts.find(p => p.id === modalVaper.id && p.enStock);
+    if (!vaperAunExiste) {
+      closeVaperModal();
+      showToast("Producto sin stock");
+    }
+  }
 }
 
 
@@ -521,6 +530,7 @@ function renderAdminProductList() {
       e.stopPropagation();
       await updateDoc(doc(db, "vapers", p.id), { enStock: !p.enStock });
       showToast("Stock actualizado");
+      renderProducts();
     });
 
     // Botones de stock por sabor
@@ -532,6 +542,7 @@ function renderAdminProductList() {
         nuevosSabores[idx].enStock = nuevosSabores[idx].enStock !== false ? false : true;
         await updateDoc(doc(db, "vapers", p.id), { sabores: nuevosSabores });
         showToast("Stock del sabor actualizado");
+        renderProducts();
       });
     });
 
@@ -729,6 +740,13 @@ function openVaperModal(vaper) {
   
   // Filtrar solo sabores con stock
   const saboresEnStock = sabores.filter((s) => s.enStock !== false);
+  
+  // Si no hay sabores en stock, cerrar modal
+  if (saboresEnStock.length === 0) {
+    closeVaperModal();
+    showToast("Este producto no tiene sabores disponibles");
+    return;
+  }
   
   saboresEnStock.forEach((s) => {
     const nombre = s.nombre || s;
