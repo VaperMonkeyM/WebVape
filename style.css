@@ -346,14 +346,6 @@ a {
   }
 }
 
-.hero-visual {
-  flex: 1;
-  min-width: 300px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 /* ====================================================
    SECTIONS
 ==================================================== */
@@ -1078,7 +1070,9 @@ a {
   }
 
   .hero-visual {
-    display: none;
+    display: flex;
+    order: -1;
+    margin-bottom: 30px;
   }
 
   .hero-title {
