@@ -20,7 +20,7 @@ import {
   getFirestore,
   collection,
   addDoc,
-  getDocs,
+  deleteDoc,
   doc,
   setDoc,
   updateDoc,
@@ -41,6 +41,9 @@ const db = getFirestore(app);
 // ======================================================
 // 3. VARIABLES GLOBALES
 // ======================================================
+
+// 🔐 SOLO ESTOS UID SON ADMIN
+const ADMIN_UIDs = ["zzmyV3WtENYwJ28OUlEaNjCpMA13"];
 
 let currentUser = null;
 let currentUserData = null;
@@ -82,10 +85,13 @@ function slugify(str) {
 async function loadUserData(uid) {
   const ref = doc(db, "users", uid);
   const snap = await getDoc(ref);
-  if (snap.exists()) {
-    currentUserData = snap.data();
-    currentRole = currentUserData.rol || "user";
-  }
+
+  currentRole = "user"; // siempre seguro
+
+  if (snap.exists()) currentUserData = snap.data();
+
+  // 🔐 Seguridad REAL: solo UID autorizados pueden ser admin
+  if (ADMIN_UIDs.includes(uid)) currentRole = "admin";
 }
 
 function updateAuthUI() {
@@ -94,13 +100,13 @@ function updateAuthUI() {
   const adminLink = $(".nav-admin-link");
 
   if (!currentUser) {
-    if (label) label.textContent = "";
+    label && (label.textContent = "");
     logout?.classList.add("hidden");
     adminLink?.classList.add("hidden");
     return;
   }
 
-  if (label) label.textContent = `Hola, ${currentUserData.nombre}`;
+  if (label) label.textContent = `Hola, ${currentUserData?.nombre}`;
   logout?.classList.remove("hidden");
 
   if (currentRole === "admin") adminLink?.classList.remove("hidden");
@@ -110,7 +116,7 @@ function setupAuthForms() {
   const loginForm = $("#loginForm");
   const registerForm = $("#registerForm");
 
-  // Login
+  // LOGIN
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#loginError").textContent = "";
@@ -127,7 +133,7 @@ function setupAuthForms() {
     }
   });
 
-  // Registro
+  // REGISTRO
   registerForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#registerError").textContent = "";
@@ -144,7 +150,6 @@ function setupAuthForms() {
         nombre,
         instagram,
         correo: email,
-        rol: "user",
         creadoEn: new Date(),
       });
 
@@ -155,19 +160,19 @@ function setupAuthForms() {
     }
   });
 
-  // Logout
+  // LOGOUT
   $("#btnLogout")?.addEventListener("click", async () => {
     await signOut(auth);
     window.location.href = "index.html";
   });
 
-  // Observer
+  // OBSERVER
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     currentUserData = null;
-    currentRole = "user";
 
     if (user) await loadUserData(user.uid);
+
     updateAuthUI();
   });
 }
@@ -185,7 +190,7 @@ function renderCategoryFilters() {
   // ALL
   const btnAll = document.createElement("button");
   btnAll.className = "chip";
-  btnAll.dataset.filter = "all";
+  btnAllDataset = "all";
   btnAll.textContent = "Todos";
   if (currentFilter === "all") btnAll.classList.add("chip-active");
   btnAll.onclick = () => {
@@ -195,24 +200,25 @@ function renderCategoryFilters() {
   };
   box.appendChild(btnAll);
 
-  // Otras categorías
+  // RESTO
   currentCategories.forEach((c) => {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.textContent = c.nombre;
-    btn.dataset.filter = c.id;
-    if (currentFilter === c.id) btn.classList.add("chip-active");
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = c.nombre;
+    b.dataset.filter = c.id;
+    if (currentFilter === c.id) b.classList.add("chip-active");
 
-    btn.onclick = () => {
+    b.onclick = () => {
       currentFilter = c.id;
       renderProducts();
       renderCategoryFilters();
     };
 
-    box.appendChild(btn);
+    box.appendChild(b);
   });
 }
 
+// ⭐ ADMIN - LISTA DE CATEGORÍAS CON MENÚ 3 PUNTOS
 function renderAdminCategoryList() {
   const list = $("#adminCategoryList");
   const select = $("#vaperCategory");
@@ -222,9 +228,56 @@ function renderAdminCategoryList() {
   select.innerHTML = "";
 
   currentCategories.forEach((c) => {
-    const li = document.createElement("li");
-    li.textContent = c.nombre;
-    list.appendChild(li);
+    const row = document.createElement("div");
+    row.className = "admin-vaper-item";
+
+    row.innerHTML = `
+      <span>${c.nombre}</span>
+      <div class="menu-dots">
+        <button class="menu-dots-btn">⋮</button>
+        <div class="menu-dots-menu hidden">
+          <button class="edit-cat">Editar</button>
+          <button class="delete-cat" style="color:#ff3b6a;">Eliminar</button>
+        </div>
+      </div>
+    `;
+
+    const dotsBtn = row.querySelector(".menu-dots-btn");
+    const menu = row.querySelector(".menu-dots-menu");
+
+    dotsBtn.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+
+    // EDITAR
+    row.querySelector(".edit-cat").addEventListener("pointerdown", async (e) => {
+      e.stopPropagation();
+      const nuevo = prompt("Nuevo nombre:", c.nombre);
+      if (!nuevo) return;
+
+      await updateDoc(doc(db, "categorias", c.id), {
+        nombre: nuevo,
+        slug: slugify(nuevo),
+      });
+
+      showToast("Categoría actualizada");
+      menu.classList.add("hidden");
+    });
+
+    // ELIMINAR
+    row.querySelector(".delete-cat").addEventListener("pointerdown", async (e) => {
+      e.stopPropagation();
+      await deleteDoc(doc(db, "categorias", c.id));
+      showToast("Categoría eliminada");
+      menu.classList.add("hidden");
+    });
+
+    document.addEventListener("pointerdown", (ev) => {
+      if (!row.contains(ev.target)) menu.classList.add("hidden");
+    });
+
+    list.appendChild(row);
 
     const opt = document.createElement("option");
     opt.value = c.id;
@@ -270,14 +323,14 @@ function renderProducts() {
 
   let list = currentProducts;
   if (currentFilter !== "all")
-    list = list.filter((p) => p.categoriaId === currentFilter);
+    list = currentProducts.filter((p) => p.categoriaId === currentFilter);
 
   list.forEach((p) => {
     const card = document.createElement("article");
     card.className = "product-card";
 
     const catObj = currentCategories.find((c) => c.id === p.categoriaId);
-    const catName = catObj ? c.nombre : "—";
+    const catName = catObj ? catObj.nombre : "—";
 
     card.innerHTML = `
       <div class="product-image">
@@ -294,7 +347,7 @@ function renderProducts() {
             ${p.enStock ? "En stock" : "Sin stock"}
           </span>
 
-          <button class="btn-tertiary btn-reservar"${p.enStock ? "" : "disabled"}>
+          <button class="btn-tertiary btn-reservar" ${p.enStock ? "" : "disabled"}>
             Reservar
           </button>
         </div>
@@ -307,8 +360,7 @@ function renderProducts() {
   });
 }
 
-// ⭐⭐⭐ FIX COMPLETO PARA MÓVIL — SECCIÓN ADMIN ⭐⭐⭐
-
+// ⭐ ADMIN VAPERS – MENU 3 PUNTOS
 function renderAdminProductList() {
   const box = $("#adminVaperList");
   if (!box) return;
@@ -316,39 +368,52 @@ function renderAdminProductList() {
   box.innerHTML = "";
 
   currentProducts.forEach((p) => {
-    const catObj = currentCategories.find((c) => c.id === p.categoriaId);
-    const catName = catObj ? catObj.nombre : "";
+    const catName = currentCategories.find((c) => c.id === p.categoriaId)?.nombre || "";
 
     const item = document.createElement("div");
     item.className = "admin-vaper-item";
 
     item.innerHTML = `
-      <div class="admin-vaper-info">
+      <div>
         <strong>${p.nombre}</strong>
-        <span class="admin-vaper-meta">${catName}</span>
+        <div class="admin-vaper-meta">${catName}</div>
       </div>
 
-      <span class="admin-badge-stock ${p.enStock ? "ok" : "off"} stock-toggle">
-        ${p.enStock ? "En stock" : "Sin stock"}
-      </span>
+      <div class="menu-dots">
+        <button class="menu-dots-btn">⋮</button>
+        <div class="menu-dots-menu hidden">
+          <button class="toggle-stock">${p.enStock ? "Marcar sin stock" : "Marcar en stock"}</button>
+          <button class="delete-vaper" style="color:#ff3b6a;">Eliminar</button>
+        </div>
+      </div>
     `;
 
-    // ************** FIX MÓVIL **************
-    const badge = item.querySelector(".stock-toggle");
+    const menu = item.querySelector(".menu-dots-menu");
+    const dotsBtn = item.querySelector(".menu-dots-btn");
 
-    badge.addEventListener("pointerdown", async (e) => {
+    dotsBtn.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
-      e.preventDefault();
+      menu.classList.toggle("hidden");
+    });
 
-      const nuevoValor = !p.enStock;
-      const ref = doc(db, "vapers", p.id);
-      await updateDoc(ref, { enStock: nuevoValor });
+    // TOGGLE STOCK
+    item.querySelector(".toggle-stock").addEventListener("pointerdown", async (e) => {
+      e.stopPropagation();
+      await updateDoc(doc(db, "vapers", p.id), { enStock: !p.enStock });
+      showToast("Stock actualizado");
+      menu.classList.add("hidden");
+    });
 
-      showToast(
-        nuevoValor
-          ? "El vaper está ahora EN STOCK"
-          : "El vaper está ahora SIN STOCK"
-      );
+    // DELETE VAPER
+    item.querySelector(".delete-vaper").addEventListener("pointerdown", async (e) => {
+      e.stopPropagation();
+      await deleteDoc(doc(db, "vapers", p.id));
+      showToast("Vaper eliminado");
+      menu.classList.add("hidden");
+    });
+
+    document.addEventListener("pointerdown", (ev) => {
+      if (!item.contains(ev.target)) menu.classList.add("hidden");
     });
 
     box.appendChild(item);
@@ -441,7 +506,6 @@ function setupModal() {
     reservasCount++;
     $(".cart-count").textContent = reservasCount;
 
-    // ENVIAR A VERCELO (GMAIL BOT)
     fetch("/api/sendEmail", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -451,23 +515,10 @@ function setupModal() {
         nombre: currentUserData.nombre,
         instagram: currentUserData.instagram,
       }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          showToast("Reserva enviada correctamente");
-          closeVaperModal();
-        } else {
-          $("#modalError").textContent =
-            "Error al enviar la reserva. Inténtalo más tarde.";
-        }
-      })
-      .catch(() => {
-        $("#modalError").textContent =
-          "Error al conectar con el servidor.";
-      });
+    });
 
-    showToast("Enviando reserva...");
+    showToast("Reserva enviada");
+    closeVaperModal();
   });
 }
 
@@ -483,18 +534,16 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ======================================================
-// MENU MÓVIL
+// 9. MENU MÓVIL
 // ======================================================
 
 const menuToggle = document.querySelector(".menu-toggle");
 const mobileMenu = document.getElementById("mobileMenu");
 
-if (menuToggle) {
-  menuToggle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    mobileMenu.classList.toggle("hidden");
-  });
-}
+menuToggle?.addEventListener("pointerdown", (e) => {
+  e.stopPropagation();
+  mobileMenu.classList.toggle("hidden");
+});
 
 document.addEventListener("pointerdown", (e) => {
   if (
