@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     // Email al ADMIN
     await transporter.sendMail({
-      from: `"Vaper Monkey Bot" <${process.env.GMAIL_USER}>`,
+      from: `"The King Puff Bot" <${process.env.GMAIL_USER}>`,
       to: process.env.ADMIN_EMAIL,
       subject: "📩 Nueva reserva recibida",
       text: `
@@ -46,9 +46,9 @@ Nueva reserva:
 
     // Email al CLIENTE
     await transporter.sendMail({
-      from: `"Vaper Monkey" <${process.env.GMAIL_USER}>`,
+      from: `"The King Puff" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: "✅ Reserva confirmada - Vaper Monkey",
+      subject: "✅ Reserva confirmada - The King Puff",
       text: `
 Hola ${nombre},
 
@@ -59,12 +59,12 @@ Hola ${nombre},
 
 🕐 Hora del pedido: ${hora}
 
-Nos pondremos en contacto contigo pronto por Instagram: @vaper__monkey
+¡Ya lo hemos reservado para ti! Pasate cuando puedas. 😜
 
 C/Plaza Santa Maria, 26, 41620 Marchena, Sevilla
 
 Gracias por tu compra,
-Vaper Monkey 🐒🌴💨
+The King Puff 🐒🌴💨
       `
     });
 
