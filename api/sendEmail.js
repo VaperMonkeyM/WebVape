@@ -77,7 +77,7 @@ ${itemsText}
 C/Plaza Santa Maria, 26, 41620 Marchena, Sevilla
 
 Gracias por tu compra,
-The King Puff 🐒🌴💨
+The King Puff 🦁💨
       `
     });
 
