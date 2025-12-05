@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Serve local HTTP server",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$ErrorActionPreference='Continue'; python -m http.server 8000 2>&1"
+			],
+			"isBackground": true,
+			"group": "none"
+		}
+	]
+}
