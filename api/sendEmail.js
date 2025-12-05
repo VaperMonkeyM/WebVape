@@ -10,7 +10,46 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
 
-  const { items, modelo, sabor, nombre, instagram, hora, email } = req.body;
+  const { items, modelo, sabor, nombre, instagram, hora, email, isWinner, winnerName, winnerEmail, prize } = req.body;
+
+  // Manejar email de ganador del sorteo
+  if (isWinner) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_PASS
+        }
+      });
+
+      // Email al ganador
+      await transporter.sendMail({
+        from: `"The King Puff" <${process.env.GMAIL_USER}>`,
+        to: winnerEmail,
+        subject: "🎉 ¡HAS GANADO EN NUESTRO SORTEO!",
+        text: `
+¡Enhorabuena ${winnerName}!
+
+🎊 Has sido el afortunado ganador de nuestro sorteo.
+
+🏆 Premio: ${prize}
+
+Ponte en contacto con nosotros para reclamar tu premio:
+📸 Instagram: https://www.instagram.com/vaper__monkey/
+📍 The King Puff - Marchena, Sevilla
+
+¡Gracias por participar!
+The King Puff 🦁💨
+        `
+      });
+
+      return res.status(200).json({ ok: true, message: "Winner email sent" });
+    } catch (err) {
+      console.error("Error sending winner email:", err);
+      return res.status(500).json({ ok: false, error: "Server error" });
+    }
+  }
 
   // Soportar tanto formato antiguo (modelo/sabor) como nuevo (items array)
   let itemsList = [];

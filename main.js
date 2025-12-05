@@ -28,6 +28,7 @@ import {
   updateDoc,
   onSnapshot,
   getDoc,
+  getDocs,
   query,
   orderBy,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -66,6 +67,172 @@ let currentCategories = [];
 
 let currentFilter = "all";
 let editingVaper = null;
+
+// ======== SORTEO ========
+let raffleState = {
+  active: false,
+  prize: "",
+  participants: []
+};
+
+function initRaffleListener() {
+  const raffleRef = doc(db, "settings", "raffle");
+  onSnapshot(raffleRef, (snap) => {
+    if (snap.exists()) {
+      raffleState = snap.data();
+    }
+    updateRaffleDisplay();
+    updateAdminRaffleUI();
+  });
+}
+
+function updateRaffleDisplay() {
+  const section = $("#raffleSection");
+  if (!section) return;
+  
+  if (!raffleState.active) {
+    section.style.display = "none";
+    return;
+  }
+  
+  section.style.display = "block";
+  const prizeDisplay = $("#rafflePrizeDisplay");
+  if (prizeDisplay) prizeDisplay.textContent = raffleState.prize || "Sorteando...";
+  
+  renderRaffleParticipants();
+}
+
+async function renderRaffleParticipants() {
+  const container = $("#raffleParticipantsDisplay");
+  if (!container) return;
+  
+  try {
+    const snap = await getDoc(doc(db, "settings", "raffle"));
+    if (!snap.exists() || !snap.data().participants) {
+      container.innerHTML = '<p>Sin participantes aún</p>';
+      return;
+    }
+    
+    const participants = snap.data().participants || [];
+    container.innerHTML = participants.map(p => `
+      <div style="background: rgba(191, 0, 255, 0.1); border: 1px solid var(--neon-purple); border-radius: 8px; padding: 12px; text-align: center;">
+        <p style="margin: 0; color: var(--neon-blue); font-weight: bold;">${p.nombre}</p>
+        <p style="margin: 4px 0; color: var(--text-soft); font-size: 12px;">${p.email}</p>
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error("Error renderizando participantes:", err);
+  }
+}
+
+async function updateAdminRaffleUI() {
+  const checkbox = $("#raffleActive");
+  const status = $("#raffleStatus");
+  const prize = $("#rafflePrize");
+  const list = $("#raffleParticipantsList");
+  
+  if (checkbox) checkbox.checked = raffleState.active;
+  if (status) status.textContent = raffleState.active ? "✓ Activo" : "Inactivo";
+  if (prize) prize.value = raffleState.prize || "";
+  
+  if (list) {
+    try {
+      const snap = await getDoc(doc(db, "settings", "raffle"));
+      const participants = snap.exists() ? (snap.data().participants || []) : [];
+      list.innerHTML = participants.length === 0 
+        ? '<p style="color: var(--text-soft);">No hay participantes</p>'
+        : participants.map(p => `<div style="padding: 4px; color: var(--text);">${p.nombre} (${p.email})</div>`).join("");
+    } catch (err) {
+      console.error("Error actualizing admin raffle UI:", err);
+    }
+  }
+}
+
+async function setupRaffleUI() {
+  const checkbox = $("#raffleActive");
+  const prize = $("#rafflePrize");
+  const runBtn = $("#raffleRunBtn");
+  
+  checkbox?.addEventListener("change", async (e) => {
+    try {
+      const allUsers = await getDocs(collection(db, "users"));
+      const participants = allUsers.docs.map(d => ({
+        nombre: d.data().nombre || d.id,
+        email: d.data().correo || ""
+      }));
+      
+      await setDoc(doc(db, "settings", "raffle"), {
+        active: e.target.checked,
+        prize: prize?.value || "",
+        participants: e.target.checked ? participants : []
+      });
+      
+      raffleState.active = e.target.checked;
+      raffleState.participants = e.target.checked ? participants : [];
+      updateRaffleDisplay();
+      showToast(e.target.checked ? "Sorteo activado" : "Sorteo desactivado");
+    } catch (err) {
+      console.error("Error activating raffle:", err);
+      showToast("Error al activar sorteo");
+    }
+  });
+  
+  prize?.addEventListener("change", async (e) => {
+    try {
+      await updateDoc(doc(db, "settings", "raffle"), { prize: e.target.value });
+      raffleState.prize = e.target.value;
+      updateRaffleDisplay();
+    } catch (err) {
+      console.error("Error updating prize:", err);
+    }
+  });
+  
+  runBtn?.addEventListener("click", async () => {
+    try {
+      const snap = await getDoc(doc(db, "settings", "raffle"));
+      const participants = snap.exists() ? (snap.data().participants || []) : [];
+      
+      if (participants.length === 0) {
+        showToast("No hay participantes");
+        return;
+      }
+      
+      const winner = participants[Math.floor(Math.random() * participants.length)];
+      const result = $("#raffleResult");
+      const resultText = $("#raffleResultText");
+      
+      if (result && resultText) {
+        resultText.textContent = `🎉 ¡Ganador: ${winner.nombre}! (${winner.email})`;
+        result.style.display = "block";
+      }
+      
+      // send email to winner
+      try {
+        await fetch("/api/sendEmail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            isWinner: true,
+            winnerName: winner.nombre,
+            winnerEmail: winner.email,
+            prize: raffleState.prize,
+            hora: new Date().toLocaleString("es-ES", {
+              year: "numeric", month: "2-digit", day: "2-digit",
+              hour: "2-digit", minute: "2-digit", second: "2-digit"
+            })
+          })
+        });
+      } catch (err) {
+        console.error("Error sending winner email:", err);
+      }
+      
+      showToast(`¡${winner.nombre} ha ganado!`);
+    } catch (err) {
+      console.error("Error running raffle:", err);
+      showToast("Error en el sorteo");
+    }
+  });
+}
 
 // ======== CARRITO ========
 let cart = [];
@@ -1066,14 +1233,15 @@ document.addEventListener("DOMContentLoaded", () => {
   setupVapers();
   setupModalReserva();
   setupEditVaperModal();
+  initRaffleListener();
+  setupRaffleUI();
   
   // Si estamos en cart.html, renderizar carrito y setup checkout
   if (document.body.id === "cartPage" || window.location.pathname.includes("cart.html")) {
     renderCart();
     setupCheckout();
   }
-
-});
+});});
 
 
 // ======================================================
