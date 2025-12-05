@@ -109,6 +109,7 @@ function addToCart(vaper, flavorName) {
     id: vaper.id,
     modelo: vaper.nombre,
     sabor: flavorName,
+    pickup: null,
     timestamp: new Date().toISOString(),
   };
   cart.push(item);
@@ -150,6 +151,9 @@ function renderCart() {
           <div>
             <strong>${item.modelo}</strong>
             <p style="margin: 4px 0; color: var(--text-soft);">Sabor: ${item.sabor}</p>
+            <label style="font-size:12px; color:var(--text-soft);">Horario aproximado</label>
+            <input type="datetime-local" class="cart-pickup" data-idx="${idx}" value="${item.pickup ? item.pickup : ''}">
+            <div class="cart-pickup-display" data-idx-display="${idx}" style="font-size:12px;color:var(--text-soft);margin-top:6px">${item.pickup ? formatPickupDisplay(item.pickup) : 'No indicado'}</div>
           </div>
           <button class="btn-small remove-item" data-idx="${idx}" style="background: #ff3b6a; color: white;">
             Eliminar
@@ -170,6 +174,27 @@ function renderCart() {
       const idx = parseInt(e.target.dataset.idx);
       removeFromCart(idx);
       renderCart();
+    });
+  });
+
+  // handle pickup edits
+  container.querySelectorAll('.cart-pickup').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const newVal = e.target.value;
+      const idx = parseInt(e.target.dataset.idx);
+      const d = new Date(newVal);
+      if (isNaN(d.getTime()) || d.getTime() < Date.now() + 5 * 60 * 1000) {
+        showToast('Fecha/hora inválida o demasiado próxima (mínimo +5min)');
+        // revert to previous value
+        e.target.value = cart[idx]?.pickup || '';
+        return;
+      }
+      cart[idx].pickup = newVal;
+      saveCart();
+      showToast('Horario actualizado');
+          // update formatted display
+          const disp = container.querySelector(`[data-idx-display="${idx}"]`);
+          if (disp) disp.textContent = formatPickupDisplay(newVal);
     });
   });
 }
@@ -200,6 +225,28 @@ function slugify(str) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function formatDateTimeLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
+function formatPickupDisplay(iso) {
+  if (!iso) return "No indicado";
+  // iso may be like 'YYYY-MM-DDTHH:MM' or full ISO; create Date
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "Invalid";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mins = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy} ${hh}:${mins}`;
 }
 
 async function uploadFlavorImage(file, vaperId, flavorName) {
@@ -876,6 +923,20 @@ function openVaperModal(vaper) {
 
   sel.addEventListener('change', updateFlavorImage);
 
+  // preset pickup datetime to one hour ahead (local)
+  const pickupInput = $("#modalPickupDatetime");
+  if (pickupInput) {
+    const nowPlus1 = new Date();
+    nowPlus1.setHours(nowPlus1.getHours() + 1);
+    // set minimum to now and default to +1 hour
+    pickupInput.min = formatDateTimeLocal(new Date());
+    pickupInput.value = formatDateTimeLocal(nowPlus1);
+  }
+
+  // clear previous errors
+  const modalErr = $("#modalError");
+  if (modalErr) modalErr.textContent = "";
+
   $("#vaperModal").classList.remove("hidden");
 }
 
@@ -920,8 +981,32 @@ function setupModalReserva() {
       return;
     }
 
-    // Añadir al carrito en lugar de enviar email directamente
+    // Validar fecha/hora aproximada
+      const pickupVal = $("#modalPickupDatetime").value;
+      if (!pickupVal) {
+        $("#modalError").textContent = "Indica día y hora aproximada.";
+        return;
+      }
+      const pickupDate = new Date(pickupVal);
+      if (isNaN(pickupDate.getTime())) {
+        $("#modalError").textContent = "Fecha/hora inválida.";
+        return;
+      }
+      // Must be at least 5 minutes in the future
+      const minAllowed = Date.now() + 5 * 60 * 1000;
+      if (pickupDate.getTime() < minAllowed) {
+        $("#modalError").textContent = "Selecciona una fecha/hora futura (al menos +5 minutos).";
+        return;
+      }
+
+    // Añadir al carrito (incluyendo pickup)
+    const itemIdxBefore = cart.length;
     addToCart(modalVaper, sabor);
+    // set pickup on the last added item
+    if (cart.length > 0) {
+      cart[cart.length - 1].pickup = pickupVal;
+      saveCart();
+    }
     closeVaperModal();
   });
 }
@@ -954,7 +1039,8 @@ function setupCheckout() {
         body: JSON.stringify({
           items: cart.map(item => ({
             modelo: item.modelo,
-            sabor: item.sabor
+            sabor: item.sabor,
+            pickup: item.pickup || null
           })),
           nombre: currentUserData?.nombre || "",
           instagram: currentUserData?.instagram || "",
