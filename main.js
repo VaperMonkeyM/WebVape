@@ -78,7 +78,30 @@ function loadCart() {
 
 function saveCart() {
   localStorage.setItem("cart", JSON.stringify(cart));
+  
+  // Si hay usuario logueado, guardar en Firestore
+  if (currentUser) {
+    const ref = doc(db, "users", currentUser.uid);
+    updateDoc(ref, { cart: cart }).catch((err) => {
+      console.log("Error guardando carrito en Firebase:", err);
+    });
+  }
+  
   updateCartUI();
+}
+
+async function loadCartFromFirebase(uid) {
+  try {
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    if (snap.exists() && snap.data().cart) {
+      cart = snap.data().cart;
+      localStorage.setItem("cart", JSON.stringify(cart));
+      updateCartUI();
+    }
+  } catch (err) {
+    console.log("Error cargando carrito de Firebase:", err);
+  }
 }
 
 function addToCart(vaper, flavorName) {
@@ -153,13 +176,6 @@ function renderCart() {
 
 // =========================================
 
-let currentProducts = [];
-let currentCategories = [];
-
-let currentFilter = "all";
-let editingVaper = null;
-
-
 // ======================================================
 // UTILIDADES
 // ======================================================
@@ -219,6 +235,9 @@ async function loadUserData(user) {
   if (email === ADMIN_EMAIL.toLowerCase()) {
     currentRole = "admin";
   }
+
+  // Cargar carrito desde Firebase
+  await loadCartFromFirebase(uid);
 
   console.log("[AUTH] User:", email, "Rol:", currentRole);
 }
@@ -953,6 +972,10 @@ function setupCheckout() {
 
       // Vaciar carrito después de envío exitoso
       cart = [];
+      if (currentUser) {
+        const ref = doc(db, "users", currentUser.uid);
+        await updateDoc(ref, { cart: [] }).catch(() => {});
+      }
       saveCart();
       showToast("Pedido completado. ¡Gracias!");
       setTimeout(() => window.location.href = "index.html", 1500);
