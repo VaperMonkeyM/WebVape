@@ -74,6 +74,23 @@
     </div>
   </section>
 
+  <!-- CHECKOUT MODAL -->
+  <div class="modal-overlay hidden" id="checkoutModal">
+    <div class="modal">
+      <button id="checkoutCloseBtn" class="modal-close">✕</button>
+      <h3>Elige día y hora aproximada para recoger</h3>
+      <div class="modal-body">
+        <label>Fecha y hora</label>
+        <input type="datetime-local" id="checkoutPickupDatetime">
+        <p id="checkoutError" class="form-error"></p>
+        <div style="margin-top:16px; display:flex; gap:8px;">
+          <button id="confirmCheckoutBtn" class="btn-primary">Confirmar y enviar pedido</button>
+          <button id="cancelCheckoutBtn" class="btn-ghost">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
 

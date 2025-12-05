@@ -151,9 +151,7 @@ function renderCart() {
           <div>
             <strong>${item.modelo}</strong>
             <p style="margin: 4px 0; color: var(--text-soft);">Sabor: ${item.sabor}</p>
-            <label style="font-size:12px; color:var(--text-soft);">Horario aproximado</label>
-            <input type="datetime-local" class="cart-pickup" data-idx="${idx}" value="${item.pickup ? item.pickup : ''}">
-            <div class="cart-pickup-display" data-idx-display="${idx}" style="font-size:12px;color:var(--text-soft);margin-top:6px">${item.pickup ? formatPickupDisplay(item.pickup) : 'No indicado'}</div>
+            <p style="margin: 6px 0; color: var(--text-soft); font-size: 13px;">Horario: ${item.pickup ? formatPickupDisplay(item.pickup) : 'No indicado'}</p>
           </div>
           <button class="btn-small remove-item" data-idx="${idx}" style="background: #ff3b6a; color: white;">
             Eliminar
@@ -176,27 +174,7 @@ function renderCart() {
       renderCart();
     });
   });
-
-  // handle pickup edits
-  container.querySelectorAll('.cart-pickup').forEach(inp => {
-    inp.addEventListener('change', (e) => {
-      const newVal = e.target.value;
-      const idx = parseInt(e.target.dataset.idx);
-      const d = new Date(newVal);
-      if (isNaN(d.getTime()) || d.getTime() < Date.now() + 5 * 60 * 1000) {
-        showToast('Fecha/hora inválida o demasiado próxima (mínimo +5min)');
-        // revert to previous value
-        e.target.value = cart[idx]?.pickup || '';
-        return;
-      }
-      cart[idx].pickup = newVal;
-      saveCart();
-      showToast('Horario actualizado');
-          // update formatted display
-          const disp = container.querySelector(`[data-idx-display="${idx}"]`);
-          if (disp) disp.textContent = formatPickupDisplay(newVal);
-    });
-  });
+  
 }
 
 // =========================================
@@ -923,16 +901,6 @@ function openVaperModal(vaper) {
 
   sel.addEventListener('change', updateFlavorImage);
 
-  // preset pickup datetime to one hour ahead (local)
-  const pickupInput = $("#modalPickupDatetime");
-  if (pickupInput) {
-    const nowPlus1 = new Date();
-    nowPlus1.setHours(nowPlus1.getHours() + 1);
-    // set minimum to now and default to +1 hour
-    pickupInput.min = formatDateTimeLocal(new Date());
-    pickupInput.value = formatDateTimeLocal(nowPlus1);
-  }
-
   // clear previous errors
   const modalErr = $("#modalError");
   if (modalErr) modalErr.textContent = "";
@@ -981,32 +949,8 @@ function setupModalReserva() {
       return;
     }
 
-    // Validar fecha/hora aproximada
-      const pickupVal = $("#modalPickupDatetime").value;
-      if (!pickupVal) {
-        $("#modalError").textContent = "Indica día y hora aproximada.";
-        return;
-      }
-      const pickupDate = new Date(pickupVal);
-      if (isNaN(pickupDate.getTime())) {
-        $("#modalError").textContent = "Fecha/hora inválida.";
-        return;
-      }
-      // Must be at least 5 minutes in the future
-      const minAllowed = Date.now() + 5 * 60 * 1000;
-      if (pickupDate.getTime() < minAllowed) {
-        $("#modalError").textContent = "Selecciona una fecha/hora futura (al menos +5 minutos).";
-        return;
-      }
-
-    // Añadir al carrito (incluyendo pickup)
-    const itemIdxBefore = cart.length;
+    // Añadir al carrito (fecha/hora se pedirá en el checkout)
     addToCart(modalVaper, sabor);
-    // set pickup on the last added item
-    if (cart.length > 0) {
-      cart[cart.length - 1].pickup = pickupVal;
-      saveCart();
-    }
     closeVaperModal();
   });
 }
@@ -1020,54 +964,92 @@ function setupCheckout() {
   const checkoutBtn = $("#checkoutBtn");
   if (!checkoutBtn) return;
 
-  checkoutBtn.addEventListener("click", async () => {
+  const checkoutModal = $("#checkoutModal");
+  const checkoutInput = $("#checkoutPickupDatetime");
+  const checkoutError = $("#checkoutError");
+  const confirmBtn = $("#confirmCheckoutBtn");
+  const cancelBtn = $("#cancelCheckoutBtn");
+  const closeBtn = $("#checkoutCloseBtn");
+
+  function openCheckoutModal() {
+    if (!checkoutModal) return;
+    // preset min and default
+    const now = new Date();
+    const defaultDt = new Date(now.getTime() + 60 * 60 * 1000);
+    if (checkoutInput) {
+      checkoutInput.min = formatDateTimeLocal(new Date());
+      checkoutInput.value = formatDateTimeLocal(defaultDt);
+    }
+    if (checkoutError) checkoutError.textContent = "";
+    checkoutModal.classList.remove('hidden');
+  }
+
+  function closeCheckoutModal() {
+    if (!checkoutModal) return;
+    checkoutModal.classList.add('hidden');
+  }
+
+  checkoutBtn.addEventListener('click', () => {
     if (!currentUser) {
-      showToast("Debes iniciar sesión");
+      showToast('Debes iniciar sesión');
       return;
     }
-
     if (cart.length === 0) {
-      showToast("El carrito está vacío");
+      showToast('El carrito está vacío');
+      return;
+    }
+    openCheckoutModal();
+  });
+
+  cancelBtn?.addEventListener('click', () => closeCheckoutModal());
+  closeBtn?.addEventListener('click', () => closeCheckoutModal());
+
+  confirmBtn?.addEventListener('click', async () => {
+    if (!checkoutInput) return;
+    const val = checkoutInput.value;
+    if (!val) {
+      if (checkoutError) checkoutError.textContent = 'Indica fecha y hora para recogida';
+      return;
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime()) || d.getTime() < Date.now() + 5 * 60 * 1000) {
+      if (checkoutError) checkoutError.textContent = 'Selecciona una fecha/hora futura (mínimo +5 minutos).';
       return;
     }
 
-    // Enviar email con todos los items del carrito
+    // assign pickup to all items
+    cart = cart.map(it => ({ ...it, pickup: val }));
+    saveCart();
+
+    // send email with items
     try {
-      await fetch("/api/sendEmail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/sendEmail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: cart.map(item => ({
-            modelo: item.modelo,
-            sabor: item.sabor,
-            pickup: item.pickup || null
-          })),
-          nombre: currentUserData?.nombre || "",
-          instagram: currentUserData?.instagram || "",
-          email: currentUser?.email || "",
-          hora: new Date().toLocaleString("es-ES", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
+          items: cart.map(item => ({ modelo: item.modelo, sabor: item.sabor, pickup: item.pickup })),
+          nombre: currentUserData?.nombre || '',
+          instagram: currentUserData?.instagram || '',
+          email: currentUser?.email || '',
+          hora: new Date().toLocaleString('es-ES', {
+            year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
           })
-        }),
+        })
       });
 
-      // Vaciar carrito después de envío exitoso
+      // clear cart
       cart = [];
       if (currentUser) {
-        const ref = doc(db, "users", currentUser.uid);
+        const ref = doc(db, 'users', currentUser.uid);
         await updateDoc(ref, { cart: [] }).catch(() => {});
       }
       saveCart();
-      showToast("Pedido completado. ¡Gracias!");
-      setTimeout(() => window.location.href = "index.html", 1500);
+      closeCheckoutModal();
+      showToast('Pedido completado. ¡Gracias!');
+      setTimeout(() => window.location.href = 'index.html', 1500);
     } catch (err) {
-      console.error("Error al enviar pedido:", err);
-      showToast("Error al enviar pedido");
+      console.error('Error al enviar pedido:', err);
+      if (checkoutError) checkoutError.textContent = 'Error al enviar pedido';
     }
   });
 }
