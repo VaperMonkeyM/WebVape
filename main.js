@@ -1237,11 +1237,11 @@ document.addEventListener("DOMContentLoaded", () => {
   setupRaffleUI();
   
   // Si estamos en cart.html, renderizar carrito y setup checkout
-  if (document.body.id === "cartPage" || window.location.pathname.includes("cart.html")) {
+  if (window.location.pathname.includes("cart.html")) {
     renderCart();
     setupCheckout();
   }
-});});
+});
 
 
 // ======================================================
