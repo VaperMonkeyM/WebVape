@@ -10,9 +10,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
 
-  const { modelo, sabor, nombre, instagram, hora, email } = req.body;
+  const { items, modelo, sabor, nombre, instagram, hora, email } = req.body;
 
-  if (!modelo || !sabor || !nombre || !instagram || !email) {
+  // Soportar tanto formato antiguo (modelo/sabor) como nuevo (items array)
+  let itemsList = [];
+  if (items && Array.isArray(items)) {
+    itemsList = items;
+  } else if (modelo && sabor) {
+    itemsList = [{ modelo, sabor }];
+  } else {
+    return res.status(400).json({ ok: false, error: "Datos incompletos" });
+  }
+
+  if (!nombre || !instagram || !email) {
     return res.status(400).json({ ok: false, error: "Datos incompletos" });
   }
 
@@ -25,16 +35,20 @@ export default async function handler(req, res) {
       }
     });
 
+    // Formatear items para el email
+    const itemsText = itemsList.map((item, i) => 
+      `${i + 1}. 📦 ${item.modelo} - 🍭 ${item.sabor}`
+    ).join("\n");
+
     // Email al ADMIN
     await transporter.sendMail({
       from: `"The King Puff Bot" <${process.env.GMAIL_USER}>`,
       to: process.env.ADMIN_EMAIL,
-      subject: "📩 Nueva reserva recibida",
+      subject: `📩 Nueva reserva recibida (${itemsList.length} item${itemsList.length > 1 ? 's' : ''})`,
       text: `
 Nueva reserva:
 
-📦 Modelo: ${modelo}
-🍭 Sabor: ${sabor}
+${itemsText}
 
 👤 Cliente: ${nombre}
 📸 Instagram: ${instagram}
@@ -54,8 +68,7 @@ Hola ${nombre},
 
 ¡Tu reserva ha sido confirmada! 🎉
 
-📦 Modelo: ${modelo}
-🍭 Sabor: ${sabor}
+${itemsText}
 
 🕐 Hora del pedido: ${hora}
 

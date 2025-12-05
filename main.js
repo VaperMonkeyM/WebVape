@@ -65,7 +65,98 @@ let currentProducts = [];
 let currentCategories = [];
 
 let currentFilter = "all";
-let reservasCount = 0;
+let editingVaper = null;
+
+// ======== CARRITO ========
+let cart = [];
+
+function loadCart() {
+  const stored = localStorage.getItem("cart");
+  cart = stored ? JSON.parse(stored) : [];
+  updateCartUI();
+}
+
+function saveCart() {
+  localStorage.setItem("cart", JSON.stringify(cart));
+  updateCartUI();
+}
+
+function addToCart(vaper, flavorName) {
+  const item = {
+    id: vaper.id,
+    modelo: vaper.nombre,
+    sabor: flavorName,
+    timestamp: new Date().toISOString(),
+  };
+  cart.push(item);
+  saveCart();
+  showToast("Añadido al carrito");
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  saveCart();
+  showToast("Removido del carrito");
+}
+
+function updateCartUI() {
+  const countEl = document.querySelector(".cart-count");
+  if (countEl) countEl.textContent = cart.length;
+}
+
+function renderCart() {
+  const container = $("#cartContainer");
+  if (!container) return;
+
+  if (cart.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px;">
+        <p style="font-size: 18px; color: var(--text-soft);">Tu carrito está vacío</p>
+        <a href="index.html#vapers" class="btn-primary" style="display: inline-block; margin-top: 20px;">
+          Volver a vapers
+        </a>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="cart-items">
+      ${cart.map((item, idx) => `
+        <div class="cart-item">
+          <div>
+            <strong>${item.modelo}</strong>
+            <p style="margin: 4px 0; color: var(--text-soft);">Sabor: ${item.sabor}</p>
+          </div>
+          <button class="btn-small remove-item" data-idx="${idx}" style="background: #ff3b6a; color: white;">
+            Eliminar
+          </button>
+        </div>
+      `).join("")}
+    </div>
+    
+    <div style="margin-top: 30px; text-align: center;">
+      <button id="checkoutBtn" class="btn-primary full">
+        Completar pedido
+      </button>
+    </div>
+  `;
+
+  container.querySelectorAll(".remove-item").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      removeFromCart(idx);
+      renderCart();
+    });
+  });
+}
+
+// =========================================
+
+let currentProducts = [];
+let currentCategories = [];
+
+let currentFilter = "all";
 let editingVaper = null;
 
 
@@ -810,46 +901,87 @@ function setupModalReserva() {
       return;
     }
 
-    reservasCount++;
-    const cartEl = $(".cart-count");
-    if (cartEl) cartEl.textContent = reservasCount;
-
-    fetch("/api/sendEmail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        modelo: modalVaper.nombre,
-        sabor,
-        nombre: currentUserData?.nombre || "",
-        instagram: currentUserData?.instagram || "",
-        email: currentUser?.email || "",
-        hora: new Date().toLocaleString("es-ES", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        })
-      }),
-    }).catch(() => {});
-
-    showToast("Reserva enviada");
+    // Añadir al carrito en lugar de enviar email directamente
+    addToCart(modalVaper, sabor);
     closeVaperModal();
   });
 }
 
 
 // ======================================================
-// 8. INICIALIZACIÓN
+// 8. CARRITO - CHECKOUT
+// ======================================================
+
+function setupCheckout() {
+  const checkoutBtn = $("#checkoutBtn");
+  if (!checkoutBtn) return;
+
+  checkoutBtn.addEventListener("click", async () => {
+    if (!currentUser) {
+      showToast("Debes iniciar sesión");
+      return;
+    }
+
+    if (cart.length === 0) {
+      showToast("El carrito está vacío");
+      return;
+    }
+
+    // Enviar email con todos los items del carrito
+    try {
+      await fetch("/api/sendEmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(item => ({
+            modelo: item.modelo,
+            sabor: item.sabor
+          })),
+          nombre: currentUserData?.nombre || "",
+          instagram: currentUserData?.instagram || "",
+          email: currentUser?.email || "",
+          hora: new Date().toLocaleString("es-ES", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          })
+        }),
+      });
+
+      // Vaciar carrito después de envío exitoso
+      cart = [];
+      saveCart();
+      showToast("Pedido completado. ¡Gracias!");
+      setTimeout(() => window.location.href = "index.html", 1500);
+    } catch (err) {
+      console.error("Error al enviar pedido:", err);
+      showToast("Error al enviar pedido");
+    }
+  });
+}
+
+
+// ======================================================
+// 9. INICIALIZACIÓN
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  loadCart();
   setupAuthForms();
   setupCategories();
   setupVapers();
   setupModalReserva();
   setupEditVaperModal();
+  
+  // Si estamos en cart.html, renderizar carrito y setup checkout
+  if (document.body.id === "cartPage" || window.location.pathname.includes("cart.html")) {
+    renderCart();
+    setupCheckout();
+  }
+
 });
 
 

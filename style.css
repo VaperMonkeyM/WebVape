@@ -200,6 +200,34 @@ a {
   gap: 20px;
 }
 
+.cart-link {
+  position: relative;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 20px;
+  transition: color 0.3s;
+}
+
+.cart-link:hover {
+  color: var(--neon-blue);
+}
+
+.cart-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--neon-purple);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
 .user-status {
   font-size: 14px;
   color: var(--text-soft);
@@ -659,6 +687,39 @@ a {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* ====================================================
+   CARRITO
+==================================================== */
+
+.cart-container {
+  max-width: 600px;
+  margin: auto;
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.cart-item {
+  background: linear-gradient(135deg, rgba(17, 17, 26, 0.6) 0%, rgba(13, 13, 20, 0.6) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+.cart-item strong {
+  color: var(--neon-blue);
+  display: block;
+  margin-bottom: 4px;
 }
 
 .modal-content h3 {
