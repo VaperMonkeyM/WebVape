@@ -957,6 +957,8 @@ function setupVapers() {
     currentProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderProducts();
     renderAdminProductList();
+    // actualizar estadísticas cuando cambian los vapers
+    try { updateAdminStats(); } catch (e) { console.error('Error updating admin stats from vapers snapshot', e); }
   });
 
   $("#vaperForm")?.addEventListener("submit", async (e) => {
@@ -980,6 +982,58 @@ function setupVapers() {
     e.target.reset();
     showToast("Vaper añadido");
   });
+}
+
+// ======================================================
+// ADMIN STATS: vapers totales, usuarios totales, reservas estimadas
+// ======================================================
+
+async function updateAdminStats() {
+  const statVapersEl = $('#statVapers');
+  const statUsersEl = $('#statUsers');
+  const statResEl = $('#statReservations');
+
+  if (!statVapersEl && !statUsersEl && !statResEl) return;
+
+  try {
+    // contar vapers
+    const vapersSnap = await getDocs(collection(db, 'vapers'));
+    const vapersCount = vapersSnap.size;
+
+    // listener/consulta de usuarios para total y sumar reservas estimadas
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const usersCount = usersSnap.size;
+
+    // Estimar reservas: buscar arrays comunes en cada doc
+    let reservationsEst = 0;
+    usersSnap.forEach(docu => {
+      const data = docu.data() || {};
+      const keysToCheck = ['reservas','orders','ordersHistory','cartHistory','history','cart'];
+      for (const k of keysToCheck) {
+        if (Array.isArray(data[k])) {
+          reservationsEst += data[k].length;
+        }
+      }
+    });
+
+    if (statVapersEl) statVapersEl.textContent = String(vapersCount);
+    if (statUsersEl) statUsersEl.textContent = String(usersCount);
+    if (statResEl) statResEl.textContent = String(reservationsEst);
+  } catch (err) {
+    console.error('Error computing admin stats:', err);
+  }
+}
+
+function setupAdminStatsListener() {
+  // actualiza en tiempo real cuando cambian los usuarios
+  try {
+    const usersCol = collection(db, 'users');
+    onSnapshot(usersCol, () => {
+      updateAdminStats().catch(e => console.error(e));
+    });
+  } catch (e) {
+    console.error('Error setting up admin stats listener', e);
+  }
 }
 
 
@@ -1323,6 +1377,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupRaffleUI();
   // Comprobar horario de la web (cierre 02:00-09:00)
   try { checkSiteHours(); } catch (e) { console.error('Error checking site hours', e); }
+  // Iniciar listener de estadísticas admin
+  try { setupAdminStatsListener(); updateAdminStats().catch(()=>{}); } catch (e) { console.error('Error starting admin stats', e); }
   
   // Si estamos en cart.html, renderizar carrito y setup checkout
   if (window.location.pathname.includes("cart.html")) {
