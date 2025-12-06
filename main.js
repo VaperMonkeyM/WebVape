@@ -1004,17 +1004,23 @@ async function updateAdminStats() {
     const usersSnap = await getDocs(collection(db, 'users'));
     const usersCount = usersSnap.size;
 
-    // Estimar reservas: buscar arrays comunes en cada doc
+    // Usar colección 'orders' si existe para contar pedidos reales
     let reservationsEst = 0;
-    usersSnap.forEach(docu => {
-      const data = docu.data() || {};
-      const keysToCheck = ['reservas','orders','ordersHistory','cartHistory','history','cart'];
-      for (const k of keysToCheck) {
-        if (Array.isArray(data[k])) {
-          reservationsEst += data[k].length;
+    try {
+      const ordersSnap = await getDocs(collection(db, 'orders'));
+      reservationsEst = ordersSnap.size;
+    } catch (e) {
+      // fallback: estimación por arrays en documentos de usuario
+      usersSnap.forEach(docu => {
+        const data = docu.data() || {};
+        const keysToCheck = ['reservas','orders','ordersHistory','cartHistory','history','cart'];
+        for (const k of keysToCheck) {
+          if (Array.isArray(data[k])) {
+            reservationsEst += data[k].length;
+          }
         }
-      }
-    });
+      });
+    }
 
     if (statVapersEl) statVapersEl.textContent = String(vapersCount);
     if (statUsersEl) statUsersEl.textContent = String(usersCount);
@@ -1028,7 +1034,12 @@ function setupAdminStatsListener() {
   // actualiza en tiempo real cuando cambian los usuarios
   try {
     const usersCol = collection(db, 'users');
+    const ordersCol = collection(db, 'orders');
     onSnapshot(usersCol, () => {
+      updateAdminStats().catch(e => console.error(e));
+    });
+    // actualizar cuando cambian orders
+    onSnapshot(ordersCol, () => {
       updateAdminStats().catch(e => console.error(e));
     });
   } catch (e) {
@@ -1320,12 +1331,32 @@ function setupCheckout() {
     cart = cart.map(it => ({ ...it, pickup: val }));
     saveCart();
 
+    // Crear order en Firestore para historial (colección 'orders')
+    let orderId = null;
+    try {
+      const orderDoc = await addDoc(collection(db, 'orders'), {
+        userId: currentUser ? currentUser.uid : null,
+        nombre: currentUserData?.nombre || '',
+        email: currentUser?.email || '',
+        instagram: currentUserData?.instagram || '',
+        items: cart.map(item => ({ modelo: item.modelo, sabor: item.sabor, pickup: item.pickup })),
+        status: 'pending',
+        createdAt: new Date()
+      });
+      orderId = orderDoc.id;
+    } catch (err) {
+      console.error('Error creando order en Firestore:', err);
+      if (checkoutError) checkoutError.textContent = 'Error guardando pedido. Intenta de nuevo.';
+      return;
+    }
+
     // send email with items (handle server-side closure responses)
     try {
       const resp = await fetch('/api/sendEmail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orderId,
           items: cart.map(item => ({ modelo: item.modelo, sabor: item.sabor, pickup: item.pickup })),
           nombre: currentUserData?.nombre || '',
           instagram: currentUserData?.instagram || '',
