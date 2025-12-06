@@ -12,6 +12,20 @@ export default async function handler(req, res) {
 
   const { items, modelo, sabor, nombre, instagram, hora, email, isWinner, winnerName, winnerEmail, prize } = req.body;
 
+  // Verificar horario del servidor: cerrado entre 02:00 y 09:00
+  try {
+    const now = new Date();
+    const h = now.getHours();
+    if (h >= 2 && h < 9) {
+      const nextOpen = new Date(now);
+      nextOpen.setHours(9, 0, 0, 0);
+      return res.status(503).json({ ok: false, error: 'La web está cerrada entre las 02:00 y las 09:00. Intenta más tarde.', nextOpen: nextOpen.toISOString() });
+    }
+  } catch (e) {
+    // si falla la comprobación horaria, no bloquear (pero logueamos)
+    console.error('Error comprobando horario en sendEmail:', e);
+  }
+
   // Manejar email de ganador del sorteo
   if (isWinner) {
     try {

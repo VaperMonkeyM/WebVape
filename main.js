@@ -372,6 +372,84 @@ function slugify(str) {
     .replace(/^-+|-+$/g, "");
 }
 
+// ======================================================
+// SITE HOURS CHECK (CERRADO 02:00-09:00)
+// ======================================================
+
+function formatTimeHHMM(d) {
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function showClosedOverlay(nextOpenDate) {
+  if (document.getElementById('siteClosedOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'siteClosedOverlay';
+  overlay.className = 'site-closed-overlay';
+  const openStr = nextOpenDate ? `${String(nextOpenDate.getDate()).padStart(2,'0')}/${String(nextOpenDate.getMonth()+1).padStart(2,'0')} ${formatTimeHHMM(nextOpenDate)}` : '09:00';
+  overlay.innerHTML = `
+    <div class="box">
+      <h2>Estamos cerrados ahora</h2>
+      <p class="small">La web está cerrada entre las 02:00 y las 09:00.</p>
+      <p>Volveremos a abrir a las <strong>${openStr}</strong>.</p>
+      <p style="margin-top:12px;color:var(--text-soft)">Puedes volver a intentarlo a partir de esa hora.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function hideClosedOverlay() {
+  const el = document.getElementById('siteClosedOverlay');
+  if (el) el.remove();
+}
+
+function scheduleNextBoundary() {
+  const now = new Date();
+  const today2 = new Date(now);
+  today2.setHours(2,0,0,0);
+  const today9 = new Date(now);
+  today9.setHours(9,0,0,0);
+
+  let next;
+  if (now >= today2 && now < today9) {
+    // currently closed, next is today at 09:00
+    next = today9;
+  } else {
+    // currently open, next is next 02:00
+    if (now < today2) {
+      next = today2;
+    } else {
+      // now >= today9 -> next is tomorrow 02:00
+      next = new Date(today2.getTime() + 24 * 60 * 60 * 1000);
+    }
+  }
+
+  const ms = next.getTime() - now.getTime();
+  setTimeout(() => {
+    checkSiteHours();
+  }, ms + 1000);
+}
+
+function checkSiteHours() {
+  const now = new Date();
+  const today2 = new Date(now);
+  today2.setHours(2,0,0,0);
+  const today9 = new Date(now);
+  today9.setHours(9,0,0,0);
+
+  if (now >= today2 && now < today9) {
+    // closed
+    showClosedOverlay(today9);
+  } else {
+    hideClosedOverlay();
+  }
+
+  // schedule next toggle
+  scheduleNextBoundary();
+}
+
+
 function formatDateTimeLocal(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -1188,9 +1266,9 @@ function setupCheckout() {
     cart = cart.map(it => ({ ...it, pickup: val }));
     saveCart();
 
-    // send email with items
+    // send email with items (handle server-side closure responses)
     try {
-      await fetch('/api/sendEmail', {
+      const resp = await fetch('/api/sendEmail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1203,6 +1281,14 @@ function setupCheckout() {
           })
         })
       });
+
+      if (!resp.ok) {
+        let body = null;
+        try { body = await resp.json(); } catch (e) { body = null; }
+        const msg = (body && body.error) ? body.error : 'La web no puede procesar pedidos en este momento.';
+        if (checkoutError) checkoutError.textContent = msg;
+        return;
+      }
 
       // clear cart
       cart = [];
@@ -1235,6 +1321,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEditVaperModal();
   initRaffleListener();
   setupRaffleUI();
+  // Comprobar horario de la web (cierre 02:00-09:00)
+  try { checkSiteHours(); } catch (e) { console.error('Error checking site hours', e); }
   
   // Si estamos en cart.html, renderizar carrito y setup checkout
   if (window.location.pathname.includes("cart.html")) {

@@ -722,6 +722,36 @@ a {
   margin-bottom: 4px;
 }
 
+/* ====================================================
+   SITE CLOSED OVERLAY (HORARIO)
+==================================================== */
+.site-closed-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,5,8,0.96);
+  color: var(--text);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+.site-closed-overlay .box {
+  max-width: 760px;
+  background: linear-gradient(135deg, rgba(17,17,26,0.85), rgba(13,13,20,0.85));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+.site-closed-overlay h2 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.site-closed-overlay p { color: var(--text-soft); margin: 0 0 8px 0; }
+.site-closed-overlay .small { font-size: 0.95rem; color: var(--text-soft); }
+
 .modal-content h3 {
   font-size: 1.8rem;
   color: var(--text);
