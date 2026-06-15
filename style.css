@@ -81,6 +81,41 @@ a {
   pointer-events: none;
 }
 
+.maintenance-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+.maintenance-card {
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  padding: 36px 30px;
+  border: 1px solid rgba(191, 0, 255, 0.25);
+  border-radius: 24px;
+  background: rgba(14, 14, 28, 0.95);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+}
+
+.maintenance-card h1 {
+  font-size: clamp(2rem, 3vw, 3rem);
+  margin-bottom: 18px;
+  color: #ffffff;
+}
+
+.maintenance-card p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #dcdcff;
+}
+
 /* ====================================================
    CONTAINERS
 ==================================================== */
